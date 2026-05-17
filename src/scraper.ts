@@ -1,5 +1,6 @@
 import {
   BOT_CHECK_MARKERS,
+  BOT_CHECK_SCAN_BYTES,
   DEFAULT_HEADERS,
   MAX_RETRIES,
   REQUEST_TIMEOUT_MS,
@@ -27,8 +28,8 @@ function pickUserAgent(): string {
 
 function looksLikeBotCheck(html: string): boolean {
   if (!html) return true;
-  const head = html.slice(0, 8000);
-  return BOT_CHECK_MARKERS.some((m) => head.includes(m));
+  const head = html.slice(0, BOT_CHECK_SCAN_BYTES);
+  return BOT_CHECK_MARKERS.some((marker) => head.includes(marker));
 }
 
 async function sleep(ms: number): Promise<void> {

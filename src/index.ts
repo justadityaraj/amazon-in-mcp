@@ -14,7 +14,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-import { AMAZON_BASE, CHARACTER_LIMIT } from "./constants.js";
+import {
+  AMAZON_BASE,
+  CHARACTER_LIMIT,
+  LOG_REVIEWS_SMOOTHING,
+  MIN_REVIEWS_FOR_BEST_VALUE,
+} from "./constants.js";
 import {
   BotBlockedError,
   FetchFailedError,
@@ -48,18 +53,19 @@ function rankResults(items: SearchResultItem[]): {
     (a, b) => (a.price_inr ?? Infinity) - (b.price_inr ?? Infinity)
   )[0];
 
-  // Best value: rating × log10(reviews+10) / sqrt(price). Requires rating+reviews.
+  // Best value: rating × log10(reviews + smoothing) / sqrt(price).
+  // Requires at least MIN_REVIEWS_FOR_BEST_VALUE reviews to avoid noisy picks.
   const scored = inStock
     .filter(
       (it) =>
         typeof it.rating === "number" &&
         typeof it.review_count === "number" &&
-        (it.review_count ?? 0) >= 10
+        (it.review_count ?? 0) >= MIN_REVIEWS_FOR_BEST_VALUE
     )
     .map((it) => ({
       it,
       score:
-        (it.rating! * Math.log10(it.review_count! + 10)) /
+        (it.rating! * Math.log10(it.review_count! + LOG_REVIEWS_SMOOTHING)) /
         Math.sqrt(it.price_inr!),
     }))
     .sort((a, b) => b.score - a.score);

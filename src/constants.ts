@@ -50,6 +50,14 @@ export const MAX_RETRIES = 3;
 export const RETRY_BASE_DELAY_MS = 800;
 export const REQUEST_TIMEOUT_MS = 20000;
 
+// Parsing tuning
+export const MAX_BULLET_LENGTH = 400; // skip overly-long feature-bullet text
+export const BOT_CHECK_SCAN_BYTES = 8000; // only scan response head for bot markers
+
+// Ranking tuning (best_value scoring)
+export const MIN_REVIEWS_FOR_BEST_VALUE = 10; // ignore items with too few reviews
+export const LOG_REVIEWS_SMOOTHING = 10; // log10(reviews + this) to avoid log(0) explosion
+
 // Phrases Amazon serves on bot-check / blocked pages
 export const BOT_CHECK_MARKERS = [
   "Type the characters you see in this image",

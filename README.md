@@ -1,180 +1,191 @@
-# amazon-in-mcp
+<p align="center">
+  <img src="./assets/social-preview.png" alt="amazon-in-mcp" width="900" />
+</p>
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server for **Amazon.in**. Give your LLM the ability to search Indian Amazon, find the cheapest in-stock listing, surface a balanced "best value" pick by reviews + price, and link out to Keepa for price history — all without paid APIs.
+<h1 align="center">amazon-in-mcp</h1>
 
-Works with Claude Code, Claude Desktop, Cursor, and any other MCP-compatible client.
+<p align="center">
+  An <a href="https://modelcontextprotocol.io">MCP</a> server that lets your LLM shop on Amazon.in.<br/>
+  Cheapest in-stock listing. Best-value pick. Price history. No paid APIs.
+</p>
 
-## Why
+<p align="center">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-black.svg"></a>
+  <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A518-black.svg">
+  <a href="https://github.com/justadityaraj/amazon-in-mcp/releases"><img alt="Release" src="https://img.shields.io/github/v/release/justadityaraj/amazon-in-mcp?color=black"></a>
+  <img alt="MCP" src="https://img.shields.io/badge/MCP-stdio-FF9900.svg">
+</p>
 
-Amazon doesn't have an official affiliate-free search API for amazon.in. Existing MCP servers focus on amazon.com and most need a paid scraping backend (Rainforest, SerpAPI, Keepa key). This server is free, open source, and runs locally via stdio — direct HTML scraping with rotating user agents and bot-check retry.
+---
 
-## Tools
+## What it does
 
-| Tool | What it does |
+Three tools your LLM can call against `amazon.in`:
+
+| Tool | What it returns |
 |---|---|
-| `search_amazon_in(query, max_results=5, include_sponsored=false)` | Keyword search → ranked listings + `cheapest_in_stock` + `best_value` picks |
-| `get_product(asin_or_url)` | Single-product detail: price, MRP, discount %, rating, reviews, stock, bullets, seller, delivery |
-| `price_history_link(asin_or_url)` | Builds a Keepa.com price-history URL for the amazon.in domain (no network call) |
+| `search_amazon_in(query, max_results=5)` | Ranked listings + two convenience picks: **cheapest in stock** and **best value** (rating × log10(reviews) / √price) |
+| `get_product(asin_or_url)` | Full product detail — price, MRP, discount, rating, reviews, stock, bullets, brand, seller, delivery |
+| `price_history_link(asin_or_url)` | A Keepa.com chart URL for the amazon.in domain. No network call. |
 
-### How "best value" is scored
+No API keys. No accounts. Runs locally over stdio. Direct HTML scraping with rotating user agents and retry on bot-check pages.
 
-Among in-stock listings with at least 10 reviews:
+---
 
-```
-score = rating × log10(review_count + 10) / sqrt(price_inr)
-```
+## Quick start
 
-The highest score wins. Cheapest-in-stock is simply the lowest `price_inr` among in-stock items.
-
-## Install
-
-### Option 1 — From npm (once published)
-
-```bash
-npx -y amazon-in-mcp-server
-```
-
-### Option 2 — From source
+**1. Install** (Claude Code):
 
 ```bash
 git clone https://github.com/justadityaraj/amazon-in-mcp.git
-cd amazon-in-mcp
-npm install
-npm run build
-node dist/index.js
+cd amazon-in-mcp && npm install && npm run build
+claude mcp add amazon-in -- node "$PWD/dist/index.js"
 ```
+
+**2. Restart your MCP client** (Claude Code, Cursor, Claude Desktop, etc.)
+
+**3. Ask:**
+
+> *"Find me a good 1TB external SSD on amazon.in under ₹10,000. Best value pick."*
+
+Your LLM will call `search_amazon_in`, rank by value, and hand back a real product with current price and a Keepa link for price history.
+
+---
+
+## What it looks like
+
+A real call to `search_amazon_in("wireless mouse", max_results=3)` returns:
+
+```json
+{
+  "query": "wireless mouse",
+  "total_results": 3,
+  "results": [
+    {
+      "asin": "B0CQRNWJM2",
+      "title": "ZEBRONICS Blanc Slim Wireless Mouse...",
+      "url": "https://www.amazon.in/dp/B0CQRNWJM2?tag=artech-21",
+      "price_inr": 423,
+      "mrp_inr": 799,
+      "rating": 4.0,
+      "review_count": 7801,
+      "in_stock": true,
+      "delivery": "FREE delivery Tomorrow",
+      "price_history_url": "https://keepa.com/#!product/12-B0CQRNWJM2"
+    }
+  ],
+  "cheapest_in_stock": { "asin": "...", "price_inr": 199, "...": "..." },
+  "best_value":        { "asin": "...", "rating": 4.3, "...": "..." }
+}
+```
+
+`get_product` adds `bullets[]`, `brand`, `seller`, `discount_percent`, `availability`.
+
+---
 
 ## Configure your MCP client
 
-### Claude Code
-
-```bash
-claude mcp add amazon-in -- npx -y amazon-in-mcp-server
-```
-
-Or for a local clone:
+<details>
+<summary><b>Claude Code</b></summary>
 
 ```bash
 claude mcp add amazon-in -- node /absolute/path/to/amazon-in-mcp/dist/index.js
 ```
+</details>
 
-### Claude Desktop / Cursor / others
+<details>
+<summary><b>Claude Desktop</b></summary>
 
-Add to your MCP config (e.g., `~/Library/Application Support/Claude/claude_desktop_config.json`):
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "amazon-in": {
-      "command": "npx",
-      "args": ["-y", "amazon-in-mcp-server"]
+      "command": "node",
+      "args": ["/absolute/path/to/amazon-in-mcp/dist/index.js"]
     }
   }
 }
 ```
+</details>
 
-## Example prompts
+<details>
+<summary><b>Cursor / Windsurf / others</b></summary>
 
-Once configured, just ask:
+Same JSON config as Claude Desktop. Drop it into the client's MCP settings file.
+</details>
 
-- "Find me a good 1TB external SSD on amazon.in under ₹10,000"
-- "What's the cheapest in-stock JBL Flex 5 on Amazon India right now?"
-- "Get the product details for B0BDHWDR12"
-- "Show me the price history for this product: https://www.amazon.in/dp/B09G9FPHY6"
+---
 
-For image-based searches: paste the image into your client and ask the LLM to describe it, then it'll run `search_amazon_in` with the right keywords. The MCP server intentionally doesn't handle images directly — keeps it client-agnostic.
+## Image search
 
-## Output schemas
+The server intentionally doesn't accept image input — keeps it provider-agnostic. Instead, paste the image into your LLM client, ask it to describe the product, and it'll call `search_amazon_in` with the right keywords automatically. Works the same in every MCP-capable client.
 
-### `search_amazon_in`
+---
 
-```json
-{
-  "query": "string",
-  "total_results": 0,
-  "results": [
-    {
-      "asin": "B0BDHWDR12",
-      "title": "Product name",
-      "url": "https://www.amazon.in/dp/B0BDHWDR12",
-      "image": "https://...",
-      "price_inr": 1299,
-      "price_display": "₹1,299.00",
-      "mrp_inr": 1999,
-      "rating": 4.3,
-      "review_count": 12345,
-      "prime": true,
-      "sponsored": false,
-      "in_stock": true,
-      "delivery": "FREE delivery Tue, 20 May",
-      "price_history_url": "https://keepa.com/#!product/12-B0BDHWDR12"
-    }
-  ],
-  "cheapest_in_stock": { "...same shape..." },
-  "best_value":        { "...same shape..." }
-}
-```
+## How "best value" is scored
 
-### `get_product`
+Among in-stock listings with at least 10 reviews:
 
-Same fields as a search result, plus `bullets[]`, `brand`, `seller`, `availability`, `discount_percent`.
+$$
+\text{score} = \frac{\text{rating} \times \log_{10}(\text{reviews} + 10)}{\sqrt{\text{price}}}
+$$
 
-## Robustness notes
+The highest score wins. `cheapest_in_stock` is just the lowest `price_inr` among in-stock items — useful when you want raw cheapness instead of balance.
 
-- **UA rotation**: each request picks a random modern desktop UA (Chrome / Safari / Firefox on Mac / Win / Linux).
-- **Retries**: up to 3 attempts with exponential backoff on 5xx, 429, and bot-check pages.
-- **Bot-check detection**: scans the first 8 KB of the response for known CAPTCHA / robot markers.
-- **Timeout**: 20 seconds per request.
-- **No state**: each tool call is independent. Stdio transport, no cookies persisted.
+---
 
-Even with all this, expect ~1-5% of requests to fail with a bot-check during heavy use. Wait 30-60 seconds and retry, or run from a different network.
+## Robustness
+
+| | |
+|---|---|
+| **UA rotation** | 5 modern desktop UAs (Chrome / Safari / Firefox on Mac / Win / Linux) |
+| **Retries** | 3 attempts, exponential backoff on 5xx, 429, and bot-check pages |
+| **Bot detection** | Scans first 8 KB for known CAPTCHA / robot markers |
+| **Timeout** | 20 s per request |
+| **State** | None. Stdio, no cookies, no session |
+
+Expect ~1–5% of requests to fail with a bot-check during heavy use. Wait 30–60 seconds and retry, or run from a different network.
+
+---
 
 ## How this project is funded
 
-By default, amazon.in URLs returned by this server include the author's Amazon Associates tag (`artech-21`). If you (or your LLM) click through to Amazon and buy something, the author earns a small commission at no extra cost to you. **You pay the same price either way.** This is the only way the project is funded — it stays free, MIT-licensed, and actively maintained.
+By default, amazon.in URLs returned by this server include the author's Amazon Associates tag (`artech-21`). If you (or your LLM) click through and buy something, the author earns a small commission. **You pay the same price.** This is the only way the project stays free, MIT, and actively maintained.
 
-You can override or disable this at any time with the `AMAZON_IN_AFFILIATE_TAG` environment variable:
+Override or disable anytime with the `AMAZON_IN_AFFILIATE_TAG` env var:
 
 | Value | Behavior |
 |---|---|
-| _unset_ | Uses the author's tag (`artech-21`) — supports the project |
-| `yourtag-21` | Uses **your** Amazon Associates tag instead |
-| `none`, `off`, `false`, or empty string | Disables affiliate tagging entirely |
+| _unset_ | Author's tag (`artech-21`) — supports the project |
+| `yourtag-21` | Your own Amazon Associates tag |
+| `none` / `off` / `false` / `""` | No tag, raw amazon.in URLs |
 
-Example MCP config that disables the tag:
+Example — your own tag:
 
 ```json
 {
   "mcpServers": {
     "amazon-in": {
-      "command": "npx",
-      "args": ["-y", "amazon-in-mcp-server"],
-      "env": { "AMAZON_IN_AFFILIATE_TAG": "none" }
+      "command": "node",
+      "args": ["/path/to/dist/index.js"],
+      "env": { "AMAZON_IN_AFFILIATE_TAG": "yourtag-21" }
     }
   }
 }
 ```
 
-Or replace it with your own:
-
-```json
-"env": { "AMAZON_IN_AFFILIATE_TAG": "yourtag-21" }
-```
-
-## Disclaimer
-
-This tool fetches publicly accessible amazon.in pages for personal research and assistant use. It does **not** bypass authentication, paywalls, or CAPTCHAs — when Amazon serves a bot-check the tool stops and reports the error.
-
-You are responsible for using this in line with Amazon's Terms of Service and any local laws. The author makes no warranty about uptime, accuracy, or fitness for any purpose.
-
-DOM selectors are best-effort and may break when Amazon updates its layout. PRs welcome.
+---
 
 ## Roadmap
 
-- [ ] Optional `find_by_image(image_url)` once a stable reverse-image path exists
-- [ ] Built-in Keepa API support (with user-supplied key) for real price-history data instead of just a link
-- [ ] Filter helpers: `min_rating`, `min_reviews`, `under_price`
+- [ ] Publish to npm so install becomes `npx -y amazon-in-mcp-server`
+- [ ] Optional Keepa API support (user-supplied key) for real price-history data
+- [ ] Filter helpers — `min_rating`, `min_reviews`, `under_price`
 - [ ] Smoke-test suite with cached HTML fixtures
+
+---
 
 ## Development
 
@@ -185,15 +196,36 @@ npm run build    # tsc → dist/
 npm start        # node dist/index.js
 ```
 
-Test the server with the MCP Inspector:
+Test interactively with the MCP Inspector:
 
 ```bash
 npx @modelcontextprotocol/inspector node dist/index.js
 ```
 
+Project layout:
+
+```
+src/
+  index.ts        # MCP server + 3 tool registrations
+  scraper.ts      # fetch with UA rotation, retry, bot-check
+  parse.ts        # cheerio selectors for search + product pages
+  constants.ts    # UAs, headers, tuning constants, affiliate config
+  types.ts        # SearchResultItem, ProductDetail
+```
+
+---
+
+## Disclaimer
+
+Fetches publicly accessible amazon.in pages for personal research and assistant use. Does **not** bypass authentication, paywalls, or CAPTCHAs — when Amazon serves a bot-check the tool stops and reports the error.
+
+You are responsible for using this in line with Amazon's Terms of Service and any local laws. No warranty about uptime, accuracy, or fitness for any purpose. DOM selectors are best-effort and may break when Amazon updates its layout. PRs welcome.
+
+---
+
 ## License
 
 MIT © [Aditya Raj Singh](https://adityarajsingh.com/)
 
-Contributions, bug reports, and selector fixes welcome — open an issue or PR on GitHub.
+Issues, bug reports, and selector fixes welcome — Amazon's DOM shifts every few months, so this will break occasionally and need community help to keep current.
 <!-- by [Aditya Raj Singh](https://adityarajsingh.com/) -->

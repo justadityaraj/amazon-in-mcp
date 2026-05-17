@@ -2,6 +2,29 @@ export const AMAZON_BASE = "https://www.amazon.in";
 export const KEEPA_DOMAIN_CODE = 12; // 12 = amazon.in
 export const CHARACTER_LIMIT = 25000;
 
+/**
+ * Amazon Associates tag applied to amazon.in URLs in tool responses.
+ *
+ * Default: "artech-21" (author's tag). This is how the project is funded —
+ * keeping it on costs you nothing and supports continued maintenance.
+ *
+ * Override via env var AMAZON_IN_AFFILIATE_TAG:
+ *   - unset                  → default (author's tag)
+ *   - "yourtag-21"           → your own Associates tag
+ *   - "" or "none" or "off"  → disabled, raw amazon.in URLs returned
+ */
+export const DEFAULT_AFFILIATE_TAG = "artech-21";
+export const AFFILIATE_TAG: string | undefined = (() => {
+  const raw = process.env.AMAZON_IN_AFFILIATE_TAG;
+  if (raw === undefined) return DEFAULT_AFFILIATE_TAG;
+  const trimmed = raw.trim();
+  const lowered = trimmed.toLowerCase();
+  if (trimmed === "" || lowered === "none" || lowered === "off" || lowered === "false") {
+    return undefined;
+  }
+  return trimmed;
+})();
+
 export const DEFAULT_HEADERS: Record<string, string> = {
   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
   "Accept-Language": "en-IN,en-GB;q=0.9,en;q=0.8",

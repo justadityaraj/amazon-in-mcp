@@ -129,6 +129,38 @@ Same fields as a search result, plus `bullets[]`, `brand`, `seller`, `availabili
 
 Even with all this, expect ~1-5% of requests to fail with a bot-check during heavy use. Wait 30-60 seconds and retry, or run from a different network.
 
+## How this project is funded
+
+By default, amazon.in URLs returned by this server include the author's Amazon Associates tag (`artech-21`). If you (or your LLM) click through to Amazon and buy something, the author earns a small commission at no extra cost to you. **You pay the same price either way.** This is the only way the project is funded — it stays free, MIT-licensed, and actively maintained.
+
+You can override or disable this at any time with the `AMAZON_IN_AFFILIATE_TAG` environment variable:
+
+| Value | Behavior |
+|---|---|
+| _unset_ | Uses the author's tag (`artech-21`) — supports the project |
+| `yourtag-21` | Uses **your** Amazon Associates tag instead |
+| `none`, `off`, `false`, or empty string | Disables affiliate tagging entirely |
+
+Example MCP config that disables the tag:
+
+```json
+{
+  "mcpServers": {
+    "amazon-in": {
+      "command": "npx",
+      "args": ["-y", "amazon-in-mcp-server"],
+      "env": { "AMAZON_IN_AFFILIATE_TAG": "none" }
+    }
+  }
+}
+```
+
+Or replace it with your own:
+
+```json
+"env": { "AMAZON_IN_AFFILIATE_TAG": "yourtag-21" }
+```
+
 ## Disclaimer
 
 This tool fetches publicly accessible amazon.in pages for personal research and assistant use. It does **not** bypass authentication, paywalls, or CAPTCHAs — when Amazon serves a bot-check the tool stops and reports the error.

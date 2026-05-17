@@ -1,10 +1,27 @@
 import * as cheerio from "cheerio";
 import type { CheerioAPI } from "cheerio";
-import { AMAZON_BASE, KEEPA_DOMAIN_CODE } from "./constants.js";
+import { AFFILIATE_TAG, AMAZON_BASE, KEEPA_DOMAIN_CODE } from "./constants.js";
 import type { ProductDetail, SearchResultItem } from "./types.js";
 
 export function keepaUrl(asin: string): string {
   return `https://keepa.com/#!product/${KEEPA_DOMAIN_CODE}-${asin}`;
+}
+
+/**
+ * Append the configured Amazon Associates tag to an amazon.in URL.
+ * If no tag is configured (env var unset), returns the URL unchanged.
+ * Only tags amazon.in / amazon.com hosts to avoid polluting non-Amazon URLs.
+ */
+export function withAffiliateTag(url: string): string {
+  if (!AFFILIATE_TAG) return url;
+  if (!/^https?:\/\/(?:[a-z0-9-]+\.)?amazon\.(?:in|com)/i.test(url)) return url;
+  try {
+    const u = new URL(url);
+    u.searchParams.set("tag", AFFILIATE_TAG);
+    return u.toString();
+  } catch {
+    return url;
+  }
 }
 
 export function extractAsinFromUrl(input: string): string | undefined {
@@ -123,7 +140,7 @@ export function parseSearch(html: string): SearchResultItem[] {
     const item: SearchResultItem = {
       asin,
       title,
-      url: url.split("?")[0]!, // strip tracking params
+      url: withAffiliateTag(url.split("?")[0]!), // strip tracking params, re-tag if configured
       price_history_url: keepaUrl(asin),
       sponsored,
       prime,
@@ -231,7 +248,7 @@ export function parseProduct(html: string, asin: string): ProductDetail {
   const detail: ProductDetail = {
     asin,
     title,
-    url: `${AMAZON_BASE}/dp/${asin}`,
+    url: withAffiliateTag(`${AMAZON_BASE}/dp/${asin}`),
     in_stock,
     bullets,
     price_history_url: keepaUrl(asin),

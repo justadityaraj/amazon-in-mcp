@@ -1,0 +1,49 @@
+{
+  "name": "amazon-in-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for searching Amazon.in — finds cheapest in-stock listings, best value picks, and price history links",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "amazon-in-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc && chmod +x dist/index.js",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "amazon",
+    "amazon-in",
+    "shopping",
+    "scraping",
+    "claude"
+  ],
+  "author": "Aditya Raj Singh <https://adityarajsingh.com/>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/justadityaraj/amazon-in-mcp"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "cheerio": "^1.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

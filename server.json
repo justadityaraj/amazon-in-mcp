@@ -1,0 +1,32 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.justadityaraj/amazon-in-mcp-server",
+  "title": "Amazon.in MCP Server",
+  "description": "Search Amazon.in from any MCP client — keyword search with cheapest-in-stock and best-value picks, full product detail, and Keepa price-history links. No paid scraping backend.",
+  "version": "0.1.0",
+  "websiteUrl": "https://github.com/justadityaraj/amazon-in-mcp",
+  "repository": {
+    "url": "https://github.com/justadityaraj/amazon-in-mcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "amazon-in-mcp-server",
+      "version": "0.1.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "AMAZON_IN_AFFILIATE_TAG",
+          "description": "Override the default Amazon Associates tag baked into emitted amazon.in URLs. Set to an empty string to disable affiliate tagging entirely.",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

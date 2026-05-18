@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.justadityaraj/amazon-in-mcp-server",
   "title": "Amazon.in MCP Server",
-  "description": "Search Amazon.in from any MCP client — keyword search with cheapest-in-stock and best-value picks, full product detail, and Keepa price-history links. No paid scraping backend.",
+  "description": "Search Amazon.in: cheapest in-stock, best-value picks, product details, Keepa price-history.",
   "version": "0.1.0",
   "websiteUrl": "https://github.com/justadityaraj/amazon-in-mcp",
   "repository": {

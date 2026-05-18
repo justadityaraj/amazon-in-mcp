@@ -1,6 +1,7 @@
 {
   "name": "amazon-in-mcp-server",
   "version": "0.1.0",
+  "mcpName": "io.github.justadityaraj/amazon-in-mcp-server",
   "description": "MCP server for searching Amazon.in — finds cheapest in-stock listings, best value picks, and price history links",
   "type": "module",
   "main": "dist/index.js",

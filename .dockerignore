@@ -1,0 +1,15 @@
+node_modules
+dist
+.git
+.gitignore
+.github
+assets
+README.md
+LICENSE
+*.md
+.env
+.env.*
+.DS_Store
+npm-debug.log
+
+# by Aditya Raj Singh — https://adityarajsingh.com/

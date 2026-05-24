@@ -58,14 +58,19 @@ export async function fetchHtml(url: string): Promise<string> {
         },
       });
 
-      if (res.status === 503 || res.status === 429) {
+      // 403 = fingerprint mismatch (often clears with UA rotation)
+      // 429 / 503 = throttled (clears with backoff)
+      // Other 4xx (404, etc.) = genuinely bad request — fail fast
+      const isRetryableStatus =
+        res.status === 403 || res.status === 429 || res.status === 503;
+
+      if (isRetryableStatus) {
         lastError = new FetchFailedError(
-          `Amazon returned ${res.status} (throttled)`,
+          `Amazon returned ${res.status} (retrying)`,
           res.status
         );
       } else if (!res.ok) {
-        // 4xx other than 429 are not worth retrying with a different UA
-        if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+        if (res.status >= 400 && res.status < 500) {
           throw new FetchFailedError(
             `Amazon returned ${res.status} ${res.statusText}`,
             res.status

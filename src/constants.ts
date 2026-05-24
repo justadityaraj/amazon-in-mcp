@@ -25,12 +25,12 @@ export const AFFILIATE_TAG: string | undefined = (() => {
   return trimmed;
 })();
 
+// NOTE: deliberately omit Accept-Encoding (let undici negotiate + auto-decompress)
+// and Cache-Control / Pragma (real browsers don't send these; routing to fresher
+// origins increases bot-check rate).
 export const DEFAULT_HEADERS: Record<string, string> = {
   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
   "Accept-Language": "en-IN,en-GB;q=0.9,en;q=0.8",
-  "Accept-Encoding": "gzip, deflate, br",
-  "Cache-Control": "no-cache",
-  "Pragma": "no-cache",
   "Sec-Fetch-Dest": "document",
   "Sec-Fetch-Mode": "navigate",
   "Sec-Fetch-Site": "none",

@@ -3,7 +3,7 @@
   "name": "io.github.justadityaraj/amazon-in-mcp-server",
   "title": "Amazon.in MCP Server",
   "description": "Search Amazon.in: cheapest in-stock, best-value picks, product details, Keepa price-history.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "websiteUrl": "https://github.com/justadityaraj/amazon-in-mcp",
   "repository": {
     "url": "https://github.com/justadityaraj/amazon-in-mcp",
@@ -14,7 +14,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "amazon-in-mcp-server",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

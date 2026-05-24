@@ -35,7 +35,7 @@ import type { RankedResults, SearchResultItem } from "./types.js";
 
 const server = new McpServer({
   name: "amazon-in-mcp-server",
-  version: "0.1.0",
+  version: "0.1.1",
 });
 
 // ---------- helpers ----------
@@ -163,7 +163,8 @@ Args:
 Returns: JSON with schema:
   {
     "query": string,
-    "total_results": number,
+    "total_results": number,    // total listings parsed from the page (pre-slice)
+    "returned": number,         // how many are in results[] after applying max_results
     "results": [
       {
         "asin": string,
@@ -208,12 +209,14 @@ Error handling:
         items = items.filter((it) => !it.sponsored);
       }
 
+      const totalParsed = items.length;
       const limited = items.slice(0, params.max_results);
       const ranks = rankResults(limited);
 
       const output: RankedResults = {
         query: params.query,
-        total_results: limited.length,
+        total_results: totalParsed,
+        returned: limited.length,
         results: limited,
         ...ranks,
       };

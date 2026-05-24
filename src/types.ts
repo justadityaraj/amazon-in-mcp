@@ -18,6 +18,7 @@ export interface SearchResultItem {
 export interface RankedResults {
   query: string;
   total_results: number;
+  returned: number;
   results: SearchResultItem[];
   cheapest_in_stock?: SearchResultItem;
   best_value?: SearchResultItem;

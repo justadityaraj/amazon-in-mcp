@@ -183,7 +183,15 @@ function buildSearchItem(card: Sel, asin: string): SearchResultItem | undefined 
   if (image) item.image = image;
   if (prices.priceText) item.price_display = prices.priceText;
   if (typeof prices.priceInr === "number") item.price_inr = prices.priceInr;
-  if (typeof prices.mrpInr === "number") item.mrp_inr = prices.mrpInr;
+  // Only emit MRP when it's strictly greater than current price — otherwise it's
+  // either equal (no discount) or a parse artefact, both of which confuse callers.
+  if (
+    typeof prices.mrpInr === "number" &&
+    typeof prices.priceInr === "number" &&
+    prices.mrpInr > prices.priceInr
+  ) {
+    item.mrp_inr = prices.mrpInr;
+  }
   if (typeof ratings.rating === "number") item.rating = ratings.rating;
   if (typeof ratings.reviewCount === "number") item.review_count = ratings.reviewCount;
   if (delivery) item.delivery = delivery;
@@ -358,7 +366,14 @@ export function parseProduct(html: string, asin: string): ProductDetail {
   if (image) detail.image = image;
   if (prices.priceText) detail.price_display = prices.priceText;
   if (typeof prices.priceInr === "number") detail.price_inr = prices.priceInr;
-  if (typeof prices.mrpInr === "number") detail.mrp_inr = prices.mrpInr;
+  // Same MRP sanity filter as search results — only emit when strictly above price.
+  if (
+    typeof prices.mrpInr === "number" &&
+    typeof prices.priceInr === "number" &&
+    prices.mrpInr > prices.priceInr
+  ) {
+    detail.mrp_inr = prices.mrpInr;
+  }
   if (typeof prices.discountPercent === "number") detail.discount_percent = prices.discountPercent;
   if (typeof ratings.rating === "number") detail.rating = ratings.rating;
   if (typeof ratings.reviewCount === "number") detail.review_count = ratings.reviewCount;

@@ -14,12 +14,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-import {
-  AMAZON_BASE,
-  CHARACTER_LIMIT,
-  LOG_REVIEWS_SMOOTHING,
-  MIN_REVIEWS_FOR_BEST_VALUE,
-} from "./constants.js";
+import { AMAZON_BASE, CHARACTER_LIMIT } from "./constants.js";
 import {
   BotBlockedError,
   FetchFailedError,
@@ -31,7 +26,8 @@ import {
   parseProduct,
   parseSearch,
 } from "./parse.js";
-import type { RankedResults, SearchResultItem } from "./types.js";
+import { rankResults } from "./rank.js";
+import type { RankedResults } from "./types.js";
 
 const server = new McpServer({
   name: "amazon-in-mcp-server",
@@ -39,42 +35,6 @@ const server = new McpServer({
 });
 
 // ---------- helpers ----------
-
-function rankResults(items: SearchResultItem[]): {
-  cheapest_in_stock?: SearchResultItem;
-  best_value?: SearchResultItem;
-} {
-  const inStock = items.filter(
-    (it) => it.in_stock && typeof it.price_inr === "number"
-  );
-  if (!inStock.length) return {};
-
-  const cheapest_in_stock = [...inStock].sort(
-    (a, b) => (a.price_inr ?? Infinity) - (b.price_inr ?? Infinity)
-  )[0];
-
-  // Best value: rating × log10(reviews + smoothing) / sqrt(price).
-  // Requires at least MIN_REVIEWS_FOR_BEST_VALUE reviews to avoid noisy picks.
-  const scored = inStock
-    .filter(
-      (it) =>
-        typeof it.rating === "number" &&
-        typeof it.review_count === "number" &&
-        (it.review_count ?? 0) >= MIN_REVIEWS_FOR_BEST_VALUE
-    )
-    .map((it) => ({
-      it,
-      score:
-        (it.rating! * Math.log10(it.review_count! + LOG_REVIEWS_SMOOTHING)) /
-        Math.sqrt(it.price_inr!),
-    }))
-    .sort((a, b) => b.score - a.score);
-
-  const result: ReturnType<typeof rankResults> = {};
-  if (cheapest_in_stock) result.cheapest_in_stock = cheapest_in_stock;
-  if (scored.length) result.best_value = scored[0]!.it;
-  return result;
-}
 
 function friendlyError(err: unknown): string {
   if (err instanceof BotBlockedError) {

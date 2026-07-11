@@ -25,6 +25,33 @@ export const AFFILIATE_TAG: string | undefined = (() => {
   return trimmed;
 })();
 
+/**
+ * Optional upstream HTTP/HTTPS proxy for every amazon.in fetch.
+ *
+ * Set AMAZON_IN_PROXY to a proxy URL (e.g. "http://user:pass@host:8080") to
+ * route requests through undici's ProxyAgent. Useful when a datacenter / CI IP
+ * is bot-blocked. Unset → direct connection (default, unchanged behaviour).
+ */
+export const PROXY_URL: string | undefined = (() => {
+  const raw = process.env.AMAZON_IN_PROXY?.trim();
+  return raw ? raw : undefined;
+})();
+
+/**
+ * Short-lived in-memory cache for fetched pages, keyed by URL. Cuts duplicate
+ * requests (and bot-check exposure) when the same query/product is looked up
+ * repeatedly in quick succession.
+ *
+ * Override the TTL via AMAZON_IN_CACHE_TTL_MS; set it to 0 to disable caching.
+ */
+export const CACHE_TTL_MS: number = (() => {
+  const raw = process.env.AMAZON_IN_CACHE_TTL_MS;
+  if (raw === undefined) return 90_000; // 90s default
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 90_000;
+})();
+export const CACHE_MAX_ENTRIES = 64;
+
 // NOTE: deliberately omit Accept-Encoding (let undici negotiate + auto-decompress)
 // and Cache-Control / Pragma (real browsers don't send these; routing to fresher
 // origins increases bot-check rate).

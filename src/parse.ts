@@ -22,6 +22,16 @@ export function keepaUrl(asin: string): string {
 }
 
 /**
+ * Build an amazon.in keyword-search URL. `page` is 1-based; page 1 is left
+ * bare (no &page=1) so the URL — and its cache key — matches a plain search.
+ */
+export function searchUrl(query: string, page = 1): string {
+  const q = encodeURIComponent(query);
+  const pageParam = page > 1 ? `&page=${page}` : "";
+  return `${AMAZON_BASE}/s?k=${q}${pageParam}`;
+}
+
+/**
  * Append the configured Amazon Associates tag to an amazon.in URL.
  * Only tags amazon.in / amazon.com hosts to avoid polluting non-Amazon URLs.
  * Returns the URL unchanged if no tag is configured or input is malformed.

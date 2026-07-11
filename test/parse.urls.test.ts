@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   extractAsinFromUrl,
   keepaUrl,
+  searchUrl,
   withAffiliateTag,
 } from "../src/parse.js";
 
@@ -51,6 +52,31 @@ test("keepaUrl builds the amazon.in (domain code 12) Keepa link", () => {
   assert.equal(
     keepaUrl("B0BDHWDR12"),
     "https://keepa.com/#!product/12-B0BDHWDR12"
+  );
+});
+
+test("searchUrl encodes the query and leaves page 1 bare", () => {
+  assert.equal(
+    searchUrl("wireless mouse"),
+    "https://www.amazon.in/s?k=wireless%20mouse"
+  );
+  assert.equal(
+    searchUrl("wireless mouse", 1),
+    "https://www.amazon.in/s?k=wireless%20mouse"
+  );
+});
+
+test("searchUrl appends &page for pages beyond the first", () => {
+  assert.equal(
+    searchUrl("ssd", 3),
+    "https://www.amazon.in/s?k=ssd&page=3"
+  );
+});
+
+test("searchUrl percent-encodes reserved characters in the query", () => {
+  assert.equal(
+    searchUrl("c++ & rust"),
+    "https://www.amazon.in/s?k=c%2B%2B%20%26%20rust"
   );
 });
 

@@ -1,12 +1,46 @@
+import { ProxyAgent } from "undici";
 import {
   BOT_CHECK_MARKERS,
   BOT_CHECK_SCAN_BYTES,
+  CACHE_MAX_ENTRIES,
+  CACHE_TTL_MS,
   DEFAULT_HEADERS,
   MAX_RETRIES,
+  PROXY_URL,
   REQUEST_TIMEOUT_MS,
   RETRY_BASE_DELAY_MS,
   USER_AGENTS,
 } from "./constants.js";
+import { TtlCache } from "./cache.js";
+
+// Successful HTML responses only, keyed by URL. Errors/bot-checks are never cached.
+const htmlCache = new TtlCache<string>({
+  ttlMs: CACHE_TTL_MS,
+  maxEntries: CACHE_MAX_ENTRIES,
+});
+
+/** Drop every cached page. Exposed for tests and long-running callers. */
+export function clearHtmlCache(): void {
+  htmlCache.clear();
+}
+
+// Lazily-built proxy dispatcher — one per process, only when AMAZON_IN_PROXY is set.
+let proxyDispatcher: ProxyAgent | undefined;
+let proxyResolved = false;
+function getDispatcher(): ProxyAgent | undefined {
+  if (!PROXY_URL) return undefined;
+  if (!proxyResolved) {
+    proxyResolved = true;
+    try {
+      proxyDispatcher = new ProxyAgent(PROXY_URL);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[amazon-in-mcp] Ignoring invalid AMAZON_IN_PROXY: ${msg}`);
+      proxyDispatcher = undefined;
+    }
+  }
+  return proxyDispatcher;
+}
 
 export class BotBlockedError extends Error {
   constructor(message = "Amazon served a bot-check page") {
@@ -41,14 +75,18 @@ async function sleep(ms: number): Promise<void> {
  * Throws BotBlockedError if every retry is blocked.
  */
 export async function fetchHtml(url: string): Promise<string> {
+  const cached = htmlCache.get(url);
+  if (cached !== undefined) return cached;
+
   let lastError: Error | undefined;
+  const dispatcher = getDispatcher();
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
-      const res = await fetch(url, {
+      const init: RequestInit = {
         method: "GET",
         redirect: "follow",
         signal: controller.signal,
@@ -56,7 +94,11 @@ export async function fetchHtml(url: string): Promise<string> {
           ...DEFAULT_HEADERS,
           "User-Agent": pickUserAgent(),
         },
-      });
+      };
+      // `dispatcher` is a Node/undici runtime extension; the undici vs undici-types
+      // definitions don't line up, so set it through an unknown-typed view.
+      if (dispatcher) (init as { dispatcher?: unknown }).dispatcher = dispatcher;
+      const res = await fetch(url, init);
 
       // 403 = fingerprint mismatch (often clears with UA rotation)
       // 429 / 503 = throttled (clears with backoff)
@@ -85,6 +127,7 @@ export async function fetchHtml(url: string): Promise<string> {
         if (looksLikeBotCheck(html)) {
           lastError = new BotBlockedError();
         } else {
+          htmlCache.set(url, html);
           return html;
         }
       }

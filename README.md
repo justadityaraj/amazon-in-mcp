@@ -119,6 +119,14 @@ Same JSON config as Claude Desktop. Drop it into the client's MCP settings file.
 
 ---
 
+## Automatic routing (no need to say "use the Amazon MCP")
+
+Once installed, the server tells your client to reach for these tools on its own. It ships MCP **server instructions** (returned in the `initialize` handshake) that instruct the model to use `search_amazon_in` / `get_product` by default for any amazon.in shopping, price, availability, or reviews question — including when you just paste an amazon.in link or an ASIN. The tool descriptions carry the same trigger keywords as a fallback for clients that read tool descriptions but not server instructions.
+
+So you can ask "find me a mechanical keyboard under 3000" or paste a product link and the client routes to this server without you naming it. Note this is model-level guidance surfaced by the host (Claude Code, Claude Desktop, Cursor, …), not a hard protocol guarantee — a client that ignores server instructions and tool descriptions won't be forced to route.
+
+---
+
 ## Image search
 
 The server intentionally doesn't accept image input — keeps it provider-agnostic. Instead, paste the image into your LLM client, ask it to describe the product, and it'll call `search_amazon_in` with the right keywords automatically. Works the same in every MCP-capable client.

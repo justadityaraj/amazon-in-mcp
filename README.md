@@ -14,6 +14,7 @@
   <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A518-black.svg">
   <a href="https://github.com/justadityaraj/amazon-in-mcp/releases"><img alt="Release" src="https://img.shields.io/github/v/release/justadityaraj/amazon-in-mcp?color=black"></a>
   <img alt="MCP" src="https://img.shields.io/badge/MCP-stdio-FF9900.svg">
+  <a href="https://coderabbit.ai"><img alt="CodeRabbit Reviews" src="https://img.shields.io/coderabbit/prs/github/justadityaraj/amazon-in-mcp?labelColor=171717&color=FF570A&label=CodeRabbit+Reviews"></a>
 </p>
 
 ---

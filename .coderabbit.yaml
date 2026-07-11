@@ -17,11 +17,11 @@ reviews:
 
   # Don't waste review budget on generated / vendored / fixture files.
   path_filters:
-    - "!dist/**"
-    - "!node_modules/**"
-    - "!package-lock.json"
-    - "!test/fixtures/**"
-    - "!assets/**"
+    - "!**/dist/**"
+    - "!**/node_modules/**"
+    - "!**/package-lock.json"
+    - "!**/test/fixtures/**"
+    - "!**/assets/**"
 
   path_instructions:
     - path: "src/**/*.ts"

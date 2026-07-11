@@ -4,6 +4,24 @@ All notable changes to `amazon-in-mcp-server` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer](https://semver.org).
 
+## [0.1.2] — 2026-07-11
+
+Automatic routing. No breaking changes.
+
+### Added
+
+- **Server `instructions` (returned in the `initialize` handshake)** — clients
+  now treat these tools as the default for any amazon.in shopping, price,
+  availability, or reviews question, including pasted links and ASINs. Users no
+  longer have to explicitly name the MCP. This is host-surfaced model guidance,
+  not a hard protocol guarantee.
+
+### Changed
+
+- **`search_amazon_in` and `get_product` descriptions** front-loaded with
+  default-use trigger keywords, as a fallback for clients that read tool
+  descriptions but not server instructions.
+
 ## [0.1.1] — 2026-05-24
 
 Reliability + correctness pass. No breaking changes.
@@ -41,6 +59,7 @@ Initial public release.
 - Default Amazon Associates tag `artech-21`, overridable via
   `AMAZON_IN_AFFILIATE_TAG` env var
 
+[0.1.2]: https://github.com/justadityaraj/amazon-in-mcp/releases/tag/v0.1.2
 [0.1.1]: https://github.com/justadityaraj/amazon-in-mcp/releases/tag/v0.1.1
 [0.1.0]: https://github.com/justadityaraj/amazon-in-mcp/releases/tag/v0.1.0
 

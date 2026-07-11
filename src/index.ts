@@ -14,7 +14,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-import { AMAZON_BASE, CHARACTER_LIMIT } from "./constants.js";
+import { AMAZON_BASE, CHARACTER_LIMIT, PROXY_URL } from "./constants.js";
 import {
   BotBlockedError,
   FetchFailedError,
@@ -25,6 +25,7 @@ import {
   keepaUrl,
   parseProduct,
   parseSearch,
+  searchUrl,
 } from "./parse.js";
 import { rankResults } from "./rank.js";
 import type { RankedResults } from "./types.js";
@@ -43,7 +44,7 @@ Treat these tools as the source of truth for amazon.in prices and availability, 
 const server = new McpServer(
   {
     name: "amazon-in-mcp-server",
-    version: "0.1.2",
+    version: "0.1.3",
   },
   {
     instructions: SERVER_INSTRUCTIONS,
@@ -61,6 +62,15 @@ function friendlyError(err: unknown): string {
   }
   if (err instanceof FetchFailedError) {
     return `Error: Failed to reach amazon.in (${err.message}). Try again shortly.`;
+  }
+  // Node's global fetch throws a bare TypeError("fetch failed") for network-layer
+  // failures (DNS, connection refused, a dead/misconfigured proxy). Surface an
+  // actionable hint instead of the opaque message.
+  if (err instanceof TypeError && /fetch failed/i.test(err.message)) {
+    const hint = PROXY_URL
+      ? "Check that AMAZON_IN_PROXY points at a reachable proxy, or unset it."
+      : "Check your network connection and try again.";
+    return `Error: Could not connect to amazon.in. ${hint}`;
   }
   if (err instanceof Error) return `Error: ${err.message}`;
   return `Error: Unexpected failure (${String(err)})`;
@@ -92,6 +102,15 @@ const SearchInputSchema = z
       .max(20)
       .default(5)
       .describe("Maximum listings to return (1-20). Default 5."),
+    page: z
+      .number()
+      .int()
+      .min(1)
+      .max(20)
+      .default(1)
+      .describe(
+        "Result page to fetch (1-based). Amazon shows ~16-24 organic listings per page; use this to look past the first page. Default 1."
+      ),
     include_sponsored: z
       .boolean()
       .default(false)
@@ -136,12 +155,14 @@ This tool scrapes the public amazon.in search page (no API key needed). It retur
 Args:
   - query (string, 2-200 chars): search keywords
   - max_results (int, 1-20, default 5): number of listings to return
+  - page (int, 1-20, default 1): which result page to fetch; use to look past page 1
   - include_sponsored (bool, default false): include ad listings
 
 Returns: JSON with schema:
   {
     "query": string,
-    "total_results": number,    // total listings parsed from the page (pre-slice)
+    "page": number,             // which result page was fetched
+    "total_results": number,    // listings parsed from this page (pre-slice)
     "returned": number,         // how many are in results[] after applying max_results
     "results": [
       {
@@ -178,8 +199,7 @@ Error handling:
   },
   async (params) => {
     try {
-      const q = encodeURIComponent(params.query);
-      const url = `${AMAZON_BASE}/s?k=${q}`;
+      const url = searchUrl(params.query, params.page);
       const html = await fetchHtml(url);
       let items = parseSearch(html);
 
@@ -193,6 +213,7 @@ Error handling:
 
       const output: RankedResults = {
         query: params.query,
+        page: params.page,
         total_results: totalParsed,
         returned: limited.length,
         results: limited,

@@ -25,7 +25,7 @@ Three tools your LLM can call against `amazon.in`:
 
 | Tool | What it returns |
 |---|---|
-| `search_amazon_in(query, max_results=5)` | Ranked listings + two convenience picks: **cheapest in stock** and **best value** (rating × log10(reviews) / √price) |
+| `search_amazon_in(query, max_results=5, page=1)` | Ranked listings + two convenience picks: **cheapest in stock** and **best value** (rating × log10(reviews) / √price). `page` fetches deeper result pages. |
 | `get_product(asin_or_url)` | Full product detail — price, MRP, discount, rating, reviews, stock, bullets, brand, seller, delivery |
 | `price_history_link(asin_or_url)` | A Keepa.com chart URL for the amazon.in domain. No network call. |
 
@@ -60,6 +60,7 @@ A real call to `search_amazon_in("wireless mouse", max_results=3)` returns:
 ```json
 {
   "query": "wireless mouse",
+  "page": 1,
   "total_results": 3,
   "results": [
     {
@@ -119,6 +120,35 @@ Same JSON config as Claude Desktop. Drop it into the client's MCP settings file.
 
 ---
 
+## Configuration
+
+All optional. Set these in the `env` block of your MCP client config; defaults preserve the original behavior.
+
+| Env var | Default | Purpose |
+|---|---|---|
+| `AMAZON_IN_AFFILIATE_TAG` | `artech-21` | Amazon Associates tag on emitted URLs. `none` / `off` / `""` disables. See [funding](#how-this-project-is-funded). |
+| `AMAZON_IN_CACHE_TTL_MS` | `90000` | Lifetime of the in-memory page cache (ms). `0` disables caching. |
+| `AMAZON_IN_PROXY` | _unset_ | HTTP/HTTPS proxy URL for all requests, e.g. `http://user:pass@host:8080`. |
+
+Example — route through a proxy and shorten the cache to 30 s:
+
+```json
+{
+  "mcpServers": {
+    "amazon-in": {
+      "command": "node",
+      "args": ["/path/to/dist/index.js"],
+      "env": {
+        "AMAZON_IN_PROXY": "http://user:pass@proxy.example:8080",
+        "AMAZON_IN_CACHE_TTL_MS": "30000"
+      }
+    }
+  }
+}
+```
+
+---
+
 ## Automatic routing (no need to say "use the Amazon MCP")
 
 Once installed, the server tells your client to reach for these tools on its own. It ships MCP **server instructions** (returned in the `initialize` handshake) that instruct the model to use `search_amazon_in` / `get_product` by default for any amazon.in shopping, price, availability, or reviews question — including when you just paste an amazon.in link or an ASIN. The tool descriptions carry the same trigger keywords as a fallback for clients that read tool descriptions but not server instructions.
@@ -153,9 +183,11 @@ The highest score wins. `cheapest_in_stock` is just the lowest `price_inr` among
 | **Retries** | 3 attempts, exponential backoff on 5xx, 429, and bot-check pages |
 | **Bot detection** | Scans first 8 KB for known CAPTCHA / robot markers |
 | **Timeout** | 20 s per request |
-| **State** | None. Stdio, no cookies, no session |
+| **Caching** | Successful pages cached in memory for 90 s (per URL) to skip duplicate fetches; tune with `AMAZON_IN_CACHE_TTL_MS`, `0` disables |
+| **Proxy** | Optional — set `AMAZON_IN_PROXY` to route requests through an HTTP/HTTPS proxy when a datacenter IP is blocked |
+| **State** | None persisted. Stdio, no cookies, no session — the cache is a short-lived, in-process buffer only |
 
-Expect ~1–5% of requests to fail with a bot-check during heavy use. Wait 30–60 seconds and retry, or run from a different network.
+Expect ~1–5% of requests to fail with a bot-check during heavy use. Wait 30–60 seconds and retry, run from a different network, or set `AMAZON_IN_PROXY`.
 
 ---
 
@@ -216,9 +248,10 @@ Project layout:
 ```
 src/
   index.ts        # MCP server + 3 tool registrations
-  scraper.ts      # fetch with UA rotation, retry, bot-check
+  scraper.ts      # fetch with UA rotation, retry, bot-check, proxy, cache
   parse.ts        # cheerio selectors for search + product pages
-  constants.ts    # UAs, headers, tuning constants, affiliate config
+  cache.ts        # in-memory TTL + LRU cache
+  constants.ts    # UAs, headers, tuning constants, affiliate/proxy/cache config
   types.ts        # SearchResultItem, ProductDetail
 ```
 

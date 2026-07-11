@@ -17,6 +17,7 @@ export interface SearchResultItem {
 
 export interface RankedResults {
   query: string;
+  page: number;
   total_results: number;
   returned: number;
   results: SearchResultItem[];

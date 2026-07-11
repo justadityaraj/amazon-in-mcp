@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+early_access: false
+
+reviews:
+  # Fewer style nitpicks; focus on correctness and security. Solo public repo.
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+
+  # Don't waste review budget on generated / vendored / fixture files.
+  path_filters:
+    - "!dist/**"
+    - "!node_modules/**"
+    - "!package-lock.json"
+    - "!test/fixtures/**"
+    - "!assets/**"
+
+  path_instructions:
+    - path: "src/**/*.ts"
+      instructions: >-
+        Public MCP server (TypeScript, ESM, Node >=18). Prioritize correctness
+        and security over style. Flag any hardcoded secrets, tokens, or
+        credentials. Ensure all outbound Amazon.in HTTP calls handle network
+        errors, non-200 responses, and rate limiting without crashing the
+        server. Confirm Zod schemas validate all tool inputs and that tool
+        handlers return structured errors instead of throwing raw. Verify tool
+        descriptions accurately match actual behavior.
+    - path: "src/scraper.ts"
+      instructions: >-
+        HTML scraping layer. Amazon markup changes often, so flag brittle
+        selectors and missing null/empty guards after cheerio queries. Check
+        that a parsing failure degrades gracefully (empty result or clear
+        error) rather than throwing. Watch for request patterns that could get
+        the server IP-blocked (missing user-agent, no timeout, tight loops).
+    - path: "src/parse.ts"
+      instructions: >-
+        Parsing utilities. Ensure functions are pure and defensive against
+        malformed or partial HTML. Flag unguarded array access, unchecked
+        Number()/parseFloat() results, and price/currency parsing that could
+        silently produce NaN.
+    - path: "test/**/*.test.ts"
+      instructions: >-
+        Uses the built-in node:test runner. Check that new source behavior has
+        matching test coverage and that fixtures represent realistic Amazon.in
+        responses. Do not flag test verbosity.
+
+chat:
+  auto_reply: true
+
+# by Aditya Raj Singh — https://adityarajsingh.com/

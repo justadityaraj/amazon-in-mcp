@@ -34,8 +34,12 @@ function getDispatcher(): ProxyAgent | undefined {
     try {
       proxyDispatcher = new ProxyAgent(PROXY_URL);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[amazon-in-mcp] Ignoring invalid AMAZON_IN_PROXY: ${msg}`);
+      // Intentionally omit the error detail: a malformed proxy URL can echo the
+      // raw AMAZON_IN_PROXY value (including any embedded credentials) back in
+      // err.message. Keep the log generic.
+      console.error(
+        "[amazon-in-mcp] AMAZON_IN_PROXY is not a valid proxy URL; continuing without a proxy."
+      );
       proxyDispatcher = undefined;
     }
   }

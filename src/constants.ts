@@ -48,7 +48,13 @@ export const CACHE_TTL_MS: number = (() => {
   const raw = process.env.AMAZON_IN_CACHE_TTL_MS;
   if (raw === undefined) return 90_000; // 90s default
   const parsed = Number(raw);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 90_000;
+  if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  // Mirror the proxy config: surface a misconfiguration instead of silently
+  // falling back. The TTL value isn't sensitive, so logging it is fine.
+  console.error(
+    `[amazon-in-mcp] Ignoring invalid AMAZON_IN_CACHE_TTL_MS (${raw}); using 90000ms.`
+  );
+  return 90_000;
 })();
 export const CACHE_MAX_ENTRIES = 64;
 

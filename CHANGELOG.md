@@ -4,6 +4,15 @@ All notable changes to `amazon-in-mcp-server` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer](https://semver.org).
 
+## [Unreleased]
+
+### Fixed
+
+- **Akamai bot-check page now reported as blocked** — amazon.in started serving
+  an Akamai `bm-verify` interstitial to plain HTTP clients. It matched none of
+  the old CAPTCHA markers, so `search_amazon_in` returned 0 results instead of
+  the bot-check error. It is now detected and retried like any other bot-check.
+
 ## [0.1.3] — 2026-07-11
 
 Reliability + coverage. No breaking changes; all new inputs and env vars are

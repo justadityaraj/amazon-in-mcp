@@ -81,6 +81,18 @@ test("fetchHtml throws BotBlockedError after exhausting all retries on bot-check
   assert.equal(calls, MAX_RETRIES, "every retry should be attempted before giving up");
 });
 
+const AKAMAI_INTERSTITIAL_HTML =
+  `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="5; URL='/s?k=x&bm-verify=AAQAAAAO'" />` +
+  `<title>&nbsp;</title></head><body><script>xhr.open("POST", "/_sec/verify?provider=interstitial", false);</script></body></html>`;
+
+test("fetchHtml treats Akamai's bm-verify interstitial as a bot-check", async () => {
+  globalThis.fetch = async () => fakeResponse({ status: 200, body: AKAMAI_INTERSTITIAL_HTML });
+  await assert.rejects(
+    () => fetchHtml("https://www.amazon.in/s?k=akamai-interstitial"),
+    (err: unknown) => err instanceof BotBlockedError
+  );
+});
+
 test("fetchHtml treats an empty 200 body as a bot-check and retries", async () => {
   let calls = 0;
   globalThis.fetch = async () => {

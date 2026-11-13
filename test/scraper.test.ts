@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   fetchHtml,
+  fetchFirstHtml,
   BotBlockedError,
   FetchFailedError,
   clearHtmlCache,
@@ -40,6 +41,49 @@ test("fetchHtml returns the HTML body on a clean 200 response", async () => {
   globalThis.fetch = async () => fakeResponse({ status: 200, body: GOOD_HTML });
   const html = await fetchHtml("https://www.amazon.in/s?k=x");
   assert.equal(html, GOOD_HTML);
+});
+
+test("fetchHtml identifies itself instead of posing as a browser", async () => {
+  let userAgent = "";
+  globalThis.fetch = async (_url, init) => {
+    userAgent = (init?.headers as Record<string, string>)["User-Agent"] ?? "";
+    return fakeResponse({ status: 200, body: GOOD_HTML });
+  };
+  await fetchHtml("https://www.amazon.in/s?k=honest-ua");
+  assert.match(userAgent, /^amazon-in-mcp-server\b/);
+  assert.doesNotMatch(userAgent, /Mozilla|Chrome|Safari|Firefox/);
+});
+
+test("fetchFirstHtml falls back to the next URL when the first is bot-blocked", async () => {
+  const requested: string[] = [];
+  globalThis.fetch = async (url) => {
+    requested.push(String(url));
+    return String(url).includes("/gp/aw/s")
+      ? fakeResponse({ status: 200, body: GOOD_HTML })
+      : fakeResponse({ status: 200, body: BOT_HTML });
+  };
+  const html = await fetchFirstHtml([
+    "https://www.amazon.in/s?k=fallback",
+    "https://www.amazon.in/gp/aw/s?k=fallback",
+  ]);
+  assert.equal(html, GOOD_HTML);
+  assert.equal(requested.at(-1), "https://www.amazon.in/gp/aw/s?k=fallback");
+});
+
+test("fetchFirstHtml does not fall back on errors other than a bot-check", async () => {
+  const requested: string[] = [];
+  globalThis.fetch = async (url) => {
+    requested.push(String(url));
+    return fakeResponse({ status: 404, statusText: "Not Found" });
+  };
+  await assert.rejects(
+    () => fetchFirstHtml([
+      "https://www.amazon.in/s?k=nofallback",
+      "https://www.amazon.in/gp/aw/s?k=nofallback",
+    ]),
+    (err: unknown) => err instanceof FetchFailedError && err.status === 404
+  );
+  assert.deepEqual(requested, ["https://www.amazon.in/s?k=nofallback"]);
 });
 
 test("fetchHtml retries a 403 then succeeds (fingerprint mismatch path)", async () => {

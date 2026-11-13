@@ -29,7 +29,7 @@ Three tools your LLM can call against `amazon.in`:
 | `get_product(asin_or_url)` | Full product detail — price, MRP, discount, rating, reviews, stock, bullets, brand, seller, delivery |
 | `price_history_link(asin_or_url)` | A Keepa.com chart URL for the amazon.in domain. No network call. |
 
-No API keys. No accounts. Runs locally over stdio. Direct HTML scraping with rotating user agents and retry on bot-check pages.
+No API keys. No accounts. Runs locally over stdio. Direct HTML scraping with an honest user agent and retry on bot-check pages.
 
 ---
 
@@ -179,7 +179,8 @@ The highest score wins. `cheapest_in_stock` is just the lowest `price_inr` among
 
 | | |
 |---|---|
-| **UA rotation** | 5 modern desktop UAs (Chrome / Safari / Firefox on Mac / Win / Linux) |
+| **User agent** | Identifies itself as `amazon-in-mcp-server` instead of posing as a browser. Amazon's Akamai check challenges browser user agents on search |
+| **Search fallback** | If `/s` serves a bot-check, search retries once on the mobile `/gp/aw/s` endpoint |
 | **Retries** | 3 attempts, exponential backoff on 5xx, 429, and bot-check pages |
 | **Bot detection** | Scans first 8 KB for known CAPTCHA / robot markers |
 | **Timeout** | 20 s per request |
@@ -248,7 +249,7 @@ Project layout:
 ```
 src/
   index.ts        # MCP server + 3 tool registrations
-  scraper.ts      # fetch with UA rotation, retry, bot-check, proxy, cache
+  scraper.ts      # fetch with retry, bot-check, search fallback, proxy, cache
   parse.ts        # cheerio selectors for search + product pages
   cache.ts        # in-memory TTL + LRU cache
   constants.ts    # UAs, headers, tuning constants, affiliate/proxy/cache config

@@ -4,6 +4,16 @@ All notable changes to `amazon-in-mcp-server` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer](https://semver.org).
 
+## [Unreleased]
+
+### Fixed
+
+- **Search works again** — amazon.in now challenges browser-like user agents on
+  `/s` with an Akamai JavaScript check, so every search came back bot-blocked.
+  Requests now identify themselves as `amazon-in-mcp-server` instead of
+  rotating fake browser user agents, which Amazon serves normally. If `/s` is
+  still bot-checked, search falls back to the mobile `/gp/aw/s` endpoint.
+
 ## [0.1.4] — 2026-11-13
 
 ### Fixed

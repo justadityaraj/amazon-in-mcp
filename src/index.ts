@@ -7,7 +7,7 @@
  *  - get_product:      detailed product page lookup by ASIN or URL
  *  - price_history_link: build a Keepa.com price-history URL for an ASIN
  *
- * Pure HTML scraping via fetch + cheerio. UA rotation + retry on bot-check pages.
+ * Pure HTML scraping via fetch + cheerio, with retry on bot-check pages.
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -18,11 +18,13 @@ import { AMAZON_BASE, CHARACTER_LIMIT, PROXY_URL } from "./constants.js";
 import {
   BotBlockedError,
   FetchFailedError,
+  fetchFirstHtml,
   fetchHtml,
 } from "./scraper.js";
 import {
   extractAsinFromUrl,
   keepaUrl,
+  mobileSearchUrl,
   parseProduct,
   parseSearch,
   searchUrl,
@@ -199,8 +201,10 @@ Error handling:
   },
   async (params) => {
     try {
-      const url = searchUrl(params.query, params.page);
-      const html = await fetchHtml(url);
+      const html = await fetchFirstHtml([
+        searchUrl(params.query, params.page),
+        mobileSearchUrl(params.query, params.page),
+      ]);
       let items = parseSearch(html);
 
       if (!params.include_sponsored) {

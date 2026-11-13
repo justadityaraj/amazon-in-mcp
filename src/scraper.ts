@@ -9,7 +9,7 @@ import {
   PROXY_URL,
   REQUEST_TIMEOUT_MS,
   RETRY_BASE_DELAY_MS,
-  USER_AGENTS,
+  USER_AGENT,
 } from "./constants.js";
 import { TtlCache } from "./cache.js";
 
@@ -60,10 +60,6 @@ export class FetchFailedError extends Error {
   }
 }
 
-function pickUserAgent(): string {
-  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)]!;
-}
-
 function looksLikeBotCheck(html: string): boolean {
   if (!html) return true;
   const head = html.slice(0, BOT_CHECK_SCAN_BYTES);
@@ -75,7 +71,7 @@ async function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Fetch an Amazon.in URL with UA rotation, timeout, and bot-check retry.
+ * Fetch an Amazon.in URL with timeout and bot-check retry.
  * Throws BotBlockedError if every retry is blocked.
  */
 export async function fetchHtml(url: string): Promise<string> {
@@ -96,7 +92,7 @@ export async function fetchHtml(url: string): Promise<string> {
         signal: controller.signal,
         headers: {
           ...DEFAULT_HEADERS,
-          "User-Agent": pickUserAgent(),
+          "User-Agent": USER_AGENT,
         },
       };
       // `dispatcher` is a Node/undici runtime extension; the undici vs undici-types
@@ -104,7 +100,7 @@ export async function fetchHtml(url: string): Promise<string> {
       if (dispatcher) (init as { dispatcher?: unknown }).dispatcher = dispatcher;
       const res = await fetch(url, init);
 
-      // 403 = fingerprint mismatch (often clears with UA rotation)
+      // 403 = transient block (often clears on retry)
       // 429 / 503 = throttled (clears with backoff)
       // Other 4xx (404, etc.) = genuinely bad request — fail fast
       const isRetryableStatus =
@@ -152,5 +148,17 @@ export async function fetchHtml(url: string): Promise<string> {
   }
 
   throw lastError ?? new FetchFailedError("Failed to fetch after retries");
+}
+export async function fetchFirstHtml(urls: string[]): Promise<string> {
+  let lastError: Error = new FetchFailedError("No URLs to fetch");
+  for (const url of urls) {
+    try {
+      return await fetchHtml(url);
+    } catch (err) {
+      if (!(err instanceof BotBlockedError)) throw err;
+      lastError = err;
+    }
+  }
+  throw lastError;
 }
 // by Aditya Raj Singh — https://adityarajsingh.com/

@@ -5,6 +5,7 @@ import {
   extractAsinFromUrl,
   keepaUrl,
   searchUrl,
+  mobileSearchUrl,
   withAffiliateTag,
 } from "../src/parse.js";
 
@@ -77,6 +78,17 @@ test("searchUrl percent-encodes reserved characters in the query", () => {
   assert.equal(
     searchUrl("c++ & rust"),
     "https://www.amazon.in/s?k=c%2B%2B%20%26%20rust"
+  );
+});
+
+test("mobileSearchUrl targets /gp/aw/s with the same query and paging", () => {
+  assert.equal(
+    mobileSearchUrl("c++ & rust"),
+    "https://www.amazon.in/gp/aw/s?k=c%2B%2B%20%26%20rust"
+  );
+  assert.equal(
+    mobileSearchUrl("ssd", 3),
+    "https://www.amazon.in/gp/aw/s?k=ssd&page=3"
   );
 });
 

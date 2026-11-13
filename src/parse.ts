@@ -25,10 +25,14 @@ export function keepaUrl(asin: string): string {
  * Build an amazon.in keyword-search URL. `page` is 1-based; page 1 is left
  * bare (no &page=1) so the URL — and its cache key — matches a plain search.
  */
-export function searchUrl(query: string, page = 1): string {
+export function searchUrl(query: string, page = 1, path = "/s"): string {
   const q = encodeURIComponent(query);
   const pageParam = page > 1 ? `&page=${page}` : "";
-  return `${AMAZON_BASE}/s?k=${q}${pageParam}`;
+  return `${AMAZON_BASE}${path}?k=${q}${pageParam}`;
+}
+
+export function mobileSearchUrl(query: string, page = 1): string {
+  return searchUrl(query, page, "/gp/aw/s");
 }
 
 /**

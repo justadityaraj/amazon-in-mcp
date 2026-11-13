@@ -4,7 +4,14 @@ All notable changes to `amazon-in-mcp-server` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer](https://semver.org).
 
-## [0.1.5] — 2026-11-13
+## [0.1.6] — 2026-11-13
+
+### Fixed
+
+- **0.1.5 was published without its build** and does not run. 0.1.6 ships the
+  same search fix, and `npm publish` now always builds first.
+
+## [0.1.5] — 2026-11-13 [deprecated: published without `dist`]
 
 ### Fixed
 
@@ -99,6 +106,7 @@ Initial public release.
 - Default Amazon Associates tag `artech-21`, overridable via
   `AMAZON_IN_AFFILIATE_TAG` env var
 
+[0.1.6]: https://github.com/justadityaraj/amazon-in-mcp/releases/tag/v0.1.6
 [0.1.5]: https://github.com/justadityaraj/amazon-in-mcp/releases/tag/v0.1.5
 [0.1.4]: https://github.com/justadityaraj/amazon-in-mcp/releases/tag/v0.1.4
 [0.1.3]: https://github.com/justadityaraj/amazon-in-mcp/releases/tag/v0.1.3

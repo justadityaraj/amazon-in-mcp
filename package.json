@@ -1,6 +1,6 @@
 {
   "name": "amazon-in-mcp-server",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "mcpName": "io.github.justadityaraj/amazon-in-mcp-server",
   "description": "MCP server for searching Amazon.in — finds cheapest in-stock listings, best value picks, and price history links",
   "type": "module",
@@ -17,6 +17,7 @@
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "build": "tsc && chmod +x dist/index.js",
+    "prepublishOnly": "npm run build",
     "test": "node --import tsx --test \"test/**/*.test.ts\"",
     "test:watch": "node --import tsx --test --watch \"test/**/*.test.ts\"",
     "clean": "rm -rf dist"

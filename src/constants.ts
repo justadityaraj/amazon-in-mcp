@@ -99,5 +99,6 @@ export const BOT_CHECK_MARKERS = [
   "Sorry, we just need to make sure you're not a robot",
   "api-services-support@amazon.com",
   "/errors/validateCaptcha",
+  "/_sec/verify?provider=interstitial",
 ];
 // by Aditya Raj Singh — https://adityarajsingh.com/

@@ -50,6 +50,23 @@ test("a 4.4 rating from 100 reviews is trusted more than a 4.9 from 10 reviews",
   assert.ok(trustedOf(PENCILS, "B000000002") > trustedOf(PENCILS, "A000000001"));
 });
 
+test("on a page with widely spread ratings, 5.0★ from 6 reviews doesn't tie 4.4★ from 1,558", () => {
+  const sprays = [
+    item({ asin: "GIZGA00003", price_inr: 149, rating: 4.4, review_count: 1558 }),
+    item({ asin: "BARROT0001", price_inr: 399, rating: 4.4, review_count: 1568 }),
+    item({ asin: "GIZGA00005", price_inr: 299, rating: 4.4, review_count: 5201 }),
+    item({ asin: "KLENZMO001", price_inr: 399, rating: 4.3, review_count: 1760 }),
+    item({ asin: "SOUNCE0001", price_inr: 208, rating: 4.1, review_count: 5447 }),
+    item({ asin: "WATERY0001", price_inr: 120, rating: 3.2, review_count: 900 }),
+    item({ asin: "STREAKY001", price_inr: 110, rating: 3.0, review_count: 800 }),
+    item({ asin: "PREMIUM001", price_inr: 2999, rating: 4.8, review_count: 1200 }),
+    item({ asin: "PREMIUM002", price_inr: 2999, rating: 4.9, review_count: 900 }),
+    item({ asin: "SIXREVIEWS", price_inr: 139, rating: 5.0, review_count: 6 }),
+  ];
+  assert.ok(trustedOf(sprays, "SIXREVIEWS") < trustedOf(sprays, "GIZGA00003"));
+  assert.equal(rankResults(sprays).best_value?.asin, "GIZGA00003");
+});
+
 test("the same rating is trusted more when it has more reviews", () => {
   const items = [
     item({ asin: "FEW0000001", price_inr: 100, rating: 4.5, review_count: 15 }),
@@ -116,6 +133,54 @@ test("budget_pick is the cheapest listing at least as good as a typical one, not
     item({ asin: "GREAT00001", price_inr: 900, rating: 4.6, review_count: 900 }),
   ];
   assert.equal(rankResults(items).budget_pick?.asin, "DECENT0001");
+});
+
+test("budget_pick needs more of its own reviews than the prior's weight, so 5★ from 2 reviews can't win it", () => {
+  const sprayPage = [
+    item({ asin: "B0GV3VYZM6", price_inr: 149, rating: 4.4, review_count: 1558 }),
+    item({ asin: "B0BXPVJF2Y", price_inr: 399, rating: 4.4, review_count: 1568 }),
+    item({ asin: "B0BLZCPPLS", price_inr: 399, rating: 4.3, review_count: 1760 }),
+    item({ asin: "B0CT5M71LS", price_inr: 90.88, rating: 3.5, review_count: 17 }),
+    item({ asin: "B0H49WC9SG", price_inr: 99, rating: 5.0, review_count: 2 }),
+    item({ asin: "B01IBSMA0A", price_inr: 299, rating: 4.4, review_count: 5201 }),
+    item({ asin: "B0GV82BF34", price_inr: 198, rating: 3.4, review_count: 19 }),
+    item({ asin: "B0HCBMH73P", price_inr: 125, rating: 4.5, review_count: 3 }),
+    item({ asin: "B0CVS5D2W3", price_inr: 150, rating: 3.9, review_count: 47 }),
+    item({ asin: "B0BSR317Y4", price_inr: 208, rating: 4.1, review_count: 5447 }),
+    item({ asin: "B0DVPXG1B8", price_inr: 289, rating: 4.0, review_count: 450 }),
+    item({ asin: "B0F2T8DH5G", price_inr: 179, rating: 4.1, review_count: 139 }),
+    item({ asin: "B0CT31DNN5", price_inr: 130, rating: 3.8, review_count: 22 }),
+    item({ asin: "B0GKFZ3WFK", price_inr: 199, rating: 4.1, review_count: 20 }),
+    item({ asin: "B0F3T82247", price_inr: 139, rating: 5.0, review_count: 6 }),
+  ];
+  assert.equal(rankResults(sprayPage).budget_pick?.asin, "B0GV3VYZM6");
+});
+
+test("on a page with wildly mixed ratings, 10 reviews is still too thin for budget_pick", () => {
+  const inflators = [
+    item({ asin: "LIFELONG01", price_inr: 999, rating: 4.6, review_count: 10 }),
+    item({ asin: "AMZBASICS1", price_inr: 1199, rating: 4.0, review_count: 24668 }),
+    item({ asin: "AGAROATOM1", price_inr: 1499, rating: 4.0, review_count: 4749 }),
+    item({ asin: "WOSCHER001", price_inr: 1402, rating: 4.1, review_count: 6416 }),
+    item({ asin: "GENERIC001", price_inr: 1100, rating: 3.9, review_count: 3000 }),
+    item({ asin: "GENERIC002", price_inr: 2000, rating: 4.0, review_count: 900 }),
+    item({ asin: "FLIMSY0001", price_inr: 700, rating: 2.5, review_count: 2000 }),
+    item({ asin: "FLIMSY0002", price_inr: 750, rating: 2.8, review_count: 1500 }),
+    item({ asin: "PREMIUM001", price_inr: 3500, rating: 4.8, review_count: 2000 }),
+    item({ asin: "PREMIUM002", price_inr: 3800, rating: 4.9, review_count: 1500 }),
+  ];
+  assert.equal(rankResults(inflators).budget_pick?.asin, "AMZBASICS1");
+});
+
+test("budget_pick accepts a listing within a close call of the typical one", () => {
+  const mice = [
+    item({ asin: "TOAD350001", price_inr: 248, rating: 4.0, review_count: 1400 }),
+    item({ asin: "BLANC00001", price_inr: 407, rating: 4.0, review_count: 10000 }),
+    item({ asin: "TOAD800001", price_inr: 499, rating: 4.5, review_count: 3500 }),
+    item({ asin: "FREEGO0001", price_inr: 229, rating: 3.7, review_count: 4300 }),
+    item({ asin: "LOGI000001", price_inr: 600, rating: 4.1, review_count: 5000 }),
+  ];
+  assert.equal(rankResults(mice).budget_pick?.asin, "TOAD350001");
 });
 
 test("price_sensitivity moves best_value between the cheaper and the better monitor", () => {

@@ -61,31 +61,32 @@ A real call to `search_amazon_in("wireless mouse", max_results=3)` returns:
 {
   "query": "wireless mouse",
   "page": 1,
-  "total_results": 3,
+  "total_results": 14,
+  "returned": 3,
   "results": [
     {
-      "asin": "B0CQRNWJM2",
-      "title": "ZEBRONICS Blanc Slim Wireless Mouse...",
-      "url": "https://www.amazon.in/dp/B0CQRNWJM2?tag=artech-21",
-      "price_inr": 423,
-      "mrp_inr": 799,
-      "rating": 4.0,
-      "review_count": 7801,
+      "asin": "B0FDQ9M1SD",
+      "title": "Portronics Toad 8 Transparent Wireless Bluetooth Mouse...",
+      "url": "https://www.amazon.in/dp/B0FDQ9M1SD?tag=artech-21",
+      "price_inr": 499,
+      "mrp_inr": 1499,
+      "rating": 4.5,
+      "review_count": 3587,
       "in_stock": true,
-      "delivery": "FREE delivery Tomorrow",
-      "price_history_url": "https://keepa.com/#!product/12-B0CQRNWJM2",
-      "trusted_rating": 3.99
+      "delivery": "FREE delivery Thu, 19 Nov",
+      "price_history_url": "https://keepa.com/#!product/12-B0FDQ9M1SD",
+      "trusted_rating": 4.46
     }
   ],
-  "best_value":        { "asin": "B0FDQ9M1SD", "price_inr": 499, "rating": 4.5, "trusted_rating": 4.48, "...": "..." },
-  "budget_pick":       { "asin": "B0B296NTFV", "price_inr": 299, "rating": 4.0, "trusted_rating": 3.99, "...": "..." },
+  "best_value":        { "asin": "B0FDQ9M1SD", "price_inr": 499, "rating": 4.5, "trusted_rating": 4.46, "...": "..." },
+  "budget_pick":       { "asin": "B0DGGWC9BV", "price_inr": 248, "rating": 4.0, "trusted_rating": 3.95, "...": "..." },
   "top_rated":         { "asin": "B0FDQ9M1SD", "...": "..." },
   "cheapest_in_stock": { "asin": "B0FF4XBM5N", "price_inr": 229, "rating": 3.7, "...": "..." },
-  "frontier":          [ "...4 listings, cheapest first..." ],
+  "frontier":          [ "...cheapest first..." ],
   "why": {
-    "best_value":  "Best balance of trusted rating and price at medium price sensitivity: ₹499, 4.5★ from 3,587 reviews (trusted 4.48).",
-    "budget_pick": "Cheapest listing rated at least as well as a typical result here: ₹299, 4.0★ from 17,143 reviews (trusted 3.99). ₹200 cheaper than best_value, trusted rating -0.49.",
-    "top_rated":   "Highest trusted rating on the page: ₹499, 4.5★ from 3,587 reviews (trusted 4.48). Same listing as best_value."
+    "best_value":  "Best balance of trusted rating and price at medium price sensitivity: ₹499, 4.5★ from 3,587 reviews (trusted 4.46).",
+    "budget_pick": "Cheapest listing about as good as a typical result here or better, with enough reviews to back it: ₹248, 4.0★ from 1,419 reviews (trusted 3.95). ₹251 cheaper than best_value, trusted rating -0.51.",
+    "top_rated":   "Highest trusted rating on the page: ₹499, 4.5★ from 3,587 reviews (trusted 4.46). Same listing as best_value."
   }
 }
 ```
@@ -179,12 +180,12 @@ Each search returns `best_value`, `budget_pick`, `top_rated` and `cheapest_in_st
 **1. Trust a rating only as far as its reviews allow.** A 4.9★ product with 10 reviews hasn't proven much yet. Each rating is blended with the typical rating on the page, weighted by its review count, then lowered by how uncertain the blend still is:
 
 $$
-\text{trusted} = \frac{n \cdot R + m \cdot \mu}{n + m} - \frac{1.2}{\sqrt{n + m}}
+\text{trusted} = \frac{n \cdot R + m \cdot \mu}{n + m} - \frac{1.645 \times 1.2}{\sqrt{n + m}}
 $$
 
-$R$ is the rating and $n$ the review count. $\mu$ is the median rating on the page, and $m$ is worked out from how much the page's ratings really differ: when every listing is rated about the same, ratings count for less. Pages with fewer than 8 rated listings use $\mu = 4.2$ and $m = 20$.
+$R$ is the rating and $n$ the review count. $\mu$ is the median rating on the page, and $m$ is worked out from how much the page's ratings really differ: when every listing is rated about the same, ratings count for less. $m$ is never below 20, so a listing needs about 20 reviews before its own rating outweighs the page's. Pages with fewer than 8 rated listings use $\mu = 4.2$ and $m = 20$. The last term makes the result a value the true rating is 95% likely to be above: 1.2 is the typical spread of single star ratings, 1.645 sets the 95%.
 
-Example: 4.9★ from 10 reviews scores 4.21, and 4.4★ from 100 reviews scores 4.26. The second one wins. Every listing carries its `trusted_rating`.
+Example: 4.9★ from 10 reviews scores 4.07, and 4.4★ from 100 reviews scores 4.19. The second one wins. Every listing carries its `trusted_rating`.
 
 **2. Treat price the way people feel it.** Going from ₹100 to ₹200 feels the same as going from ₹10,000 to ₹20,000, so price is compared on a log scale. One formula works for pencils and for monitors.
 
@@ -199,7 +200,7 @@ $$
 $\lambda$ is how many stars you'd give up to pay half the price: `0.05`, `0.15` or `0.3` for `price_sensitivity` `low`, `medium` (default) or `high`.
 
 - `best_value`: highest score.
-- `budget_pick`: cheapest frontier listing rated at least as well as the middle listing on the page.
+- `budget_pick`: cheapest listing whose trusted rating is within 0.05 of the middle listing's or better, and that has at least $m$ reviews of its own, so its score comes mostly from real reviews rather than the page average.
 - `top_rated`: highest trusted rating, whatever it costs.
 - `cheapest_in_stock`: lowest price, no quality bar.
 
@@ -217,7 +218,7 @@ Listings priced more than 25× above or below the page's median price are marked
 | Frontier of trade-offs | Vilfredo Pareto (1906); Harry Markowitz's efficient frontier (1952) |
 | Quality minus weighted cost | Cost-effectiveness analysis, Weinstein & Stason (1977) |
 
-The constants (1.2, $\lambda$, the 0.05 close-call gap) are tuning choices, set in [`src/constants.ts`](src/constants.ts).
+The constants (1.2, the 95% level, $\lambda$, the 0.05 close-call gap, the 25× outlier ratio) are tuning choices, set in [`src/constants.ts`](src/constants.ts).
 
 ---
 

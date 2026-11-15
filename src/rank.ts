@@ -163,14 +163,19 @@ export function rankResults(
   const value = (it: Ranked) => it.trusted_rating - starsPerDoubling * Math.log2(it.price_inr);
   const [best, runnerUp] = [...eligible].sort((a, b) => value(b) - value(a)) as [Ranked, Ranked?];
   const frontier = frontierOf(eligible);
-  const typical = lowerMedian(eligible.map((it) => it.trusted_rating));
-  const budget = frontier.find((it) => it.trusted_rating >= typical)!;
+  const typical = lowerMedian(eligible.map((it) => it.trusted_rating)) - CLOSE_CALL_GAP;
+  const priorWeight = pagePrior(items.filter(isRated)).strength;
+  const isDecent = (it: Ranked) => it.trusted_rating >= typical;
+  const budget =
+    [...eligible]
+      .sort((a, b) => a.price_inr - b.price_inr)
+      .find((it) => isDecent(it) && it.review_count >= priorWeight) ?? frontier.find(isDecent)!;
   const top = frontier[frontier.length - 1]!;
 
   Object.assign(picks, { best_value: best, budget_pick: budget, top_rated: top, frontier });
   picks.why = {
     best_value: `Best balance of trusted rating and price at ${sensitivity} price sensitivity: ${describe(best)}.`,
-    budget_pick: `Cheapest listing rated at least as well as a typical result here: ${describe(budget)}. ${versus(budget, best)}`,
+    budget_pick: `Cheapest listing about as good as a typical result here or better, with enough reviews to back it: ${describe(budget)}. ${versus(budget, best)}`,
     top_rated: `Highest trusted rating on the page: ${describe(top)}. ${versus(top, best)}`,
   };
 

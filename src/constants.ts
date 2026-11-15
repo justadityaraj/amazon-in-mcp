@@ -83,11 +83,11 @@ export const MAX_BULLET_LENGTH = 400; // skip overly-long feature-bullet text
 export const BOT_CHECK_SCAN_BYTES = 8000; // only scan response head for bot markers
 
 export const STAR_RATING_SD = 1.2;
-export const CONFIDENCE_Z = 1;
+export const CONFIDENCE_Z = 1.645;
 export const FALLBACK_PRIOR_MEAN = 4.2;
 export const FALLBACK_PRIOR_STRENGTH = 20;
 export const MIN_LISTINGS_FOR_PAGE_PRIOR = 8;
-export const MIN_PRIOR_STRENGTH = 5;
+export const MIN_PRIOR_STRENGTH = 20;
 export const MAX_PRIOR_STRENGTH = 100;
 export const MIN_BETWEEN_LISTING_VARIANCE = 0.01;
 export const STARS_TRADED_PER_PRICE_DOUBLING = { low: 0.05, medium: 0.15, high: 0.3 } as const;

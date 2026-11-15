@@ -159,7 +159,7 @@ Use this by default whenever the user wants to buy, find, compare, or check the 
 This tool scrapes the public amazon.in search page (no API key needed). Picks are computed over every listing on the page, not just the returned ones:
  - trusted_rating (on each listing): the rating adjusted for how many reviews back it, so 4.9★ from 10 reviews ranks below 4.4★ from 100
  - best_value: highest trusted_rating − λ·log2(price), where λ comes from price_sensitivity
- - budget_pick: cheapest listing at least as good as the middle listing on the page
+ - budget_pick: cheapest listing about as good as the middle listing on the page or better, with enough reviews to back it
  - top_rated: highest trusted_rating, whatever it costs
  - cheapest_in_stock: lowest price among listings showing stock
  - frontier: listings left after dropping anything both pricier and worse, cheapest first

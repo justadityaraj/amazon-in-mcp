@@ -29,7 +29,7 @@ import {
   parseSearch,
   searchUrl,
 } from "./parse.js";
-import { rankResults } from "./rank.js";
+import { dedupeVariants, rankResults, scoreItems } from "./rank.js";
 import type { RankedResults } from "./types.js";
 
 const SERVER_INSTRUCTIONS = `This server provides live amazon.in (Amazon India) product data via public-page scraping — no API key required.
@@ -37,7 +37,7 @@ const SERVER_INSTRUCTIONS = `This server provides live amazon.in (Amazon India) 
 Whenever the user wants to find, look up, compare, price-check, or check the availability, rating, reviews, or delivery of ANY product on Amazon India — or pastes an amazon.in URL or a 10-character ASIN — use these tools by DEFAULT, instead of web search or model knowledge. The user should not have to say "use the Amazon MCP"; treat any Indian-Amazon shopping request as a signal to reach for these tools.
 
 Tools:
- - search_amazon_in   → keyword/product search; returns ranked listings plus two convenience picks: cheapest_in_stock and best_value.
+ - search_amazon_in   → keyword/product search; returns listings plus deterministic picks: best_value, budget_pick, top_rated, cheapest_in_stock, and the frontier of sensible price/quality trade-offs. Each pick has a reason in "why". When close_call is true, the top two are nearly tied: compare their titles and features before recommending one. Set price_sensitivity from what the user says ("cheapest decent one" = high, "money no object" = low).
  - get_product        → one ASIN or URL: price, MRP, discount %, rating, review count, stock, brand, seller, delivery, and a Keepa price-history link.
  - price_history_link → offline builder for a Keepa.com price-history chart URL for an ASIN.
 
@@ -117,6 +117,12 @@ const SearchInputSchema = z
       .boolean()
       .default(false)
       .describe("Include sponsored / ad listings. Defaults to false."),
+    price_sensitivity: z
+      .enum(["low", "medium", "high"])
+      .default("medium")
+      .describe(
+        "How much price matters for best_value. high = favour cheaper listings, low = favour better-rated ones even if pricier. Default medium."
+      ),
   })
   .strict();
 
@@ -150,15 +156,23 @@ server.registerTool(
 
 Use this by default whenever the user wants to buy, find, compare, or check the price / cost / availability / rating / reviews of a product on Amazon India — including phrasings like "on Amazon", "Amazon India", "amazon.in", "find me a…", "cheapest…", or "what's the price of…". Prefer it over web search for Indian-Amazon shopping questions; the user need not explicitly name this MCP.
 
-This tool scrapes the public amazon.in search page (no API key needed). It returns a normalised list of results plus two convenience picks:
+This tool scrapes the public amazon.in search page (no API key needed). Picks are computed over every listing on the page, not just the returned ones:
+ - trusted_rating (on each listing): the rating adjusted for how many reviews back it, so 4.9★ from 10 reviews ranks below 4.4★ from 100
+ - best_value: highest trusted_rating − λ·log2(price), where λ comes from price_sensitivity
+ - budget_pick: cheapest listing about as good as the middle listing on the page or better, with enough reviews to back it; absent when none qualifies
+ - top_rated: highest trusted_rating, whatever it costs
  - cheapest_in_stock: lowest price among listings showing stock
- - best_value: weighted score = rating × log10(reviews+10) / sqrt(price), requires >=10 reviews
+ - frontier: listings left after dropping anything both pricier and worse, cheapest first
+ - close_call + runner_up: present when best_value is nearly tied; compare features before choosing
+ - why: one-line reason for each pick
+Colour/size variants that share one rating, review count and a near-identical title are merged into the cheapest. On pages with at least 8 priced listings, listings priced over 25× above or below the page median are marked price_outlier and left out of the picks (usually a different kind of product).
 
 Args:
   - query (string, 2-200 chars): search keywords
   - max_results (int, 1-20, default 5): number of listings to return
   - page (int, 1-20, default 1): which result page to fetch; use to look past page 1
   - include_sponsored (bool, default false): include ad listings
+  - price_sensitivity ("low" | "medium" | "high", default "medium"): how much price matters for best_value
 
 Returns: JSON with schema:
   {
@@ -181,11 +195,18 @@ Returns: JSON with schema:
         "sponsored": boolean,
         "in_stock": boolean,
         "delivery": string,
-        "price_history_url": string
+        "price_history_url": string,
+        "trusted_rating": number
       }
     ],
+    "best_value": <SearchResultItem>,
+    "budget_pick": <SearchResultItem>,
+    "top_rated": <SearchResultItem>,
     "cheapest_in_stock": <SearchResultItem>,
-    "best_value": <SearchResultItem>
+    "frontier": <SearchResultItem>[],
+    "close_call": true,            // only when nearly tied
+    "runner_up": <SearchResultItem>, // only when close_call
+    "why": { "best_value": string, "budget_pick": string, "top_rated": string, "runner_up"?: string }
   }
 
 Error handling:
@@ -210,18 +231,19 @@ Error handling:
       if (!params.include_sponsored) {
         items = items.filter((it) => !it.sponsored);
       }
+      items = dedupeVariants(items);
 
-      const totalParsed = items.length;
-      const limited = items.slice(0, params.max_results);
-      const ranks = rankResults(limited);
+      const scored = scoreItems(items);
+      const limited = scored.slice(0, params.max_results);
+      const picks = rankResults(items, params.price_sensitivity);
 
       const output: RankedResults = {
         query: params.query,
         page: params.page,
-        total_results: totalParsed,
+        total_results: scored.length,
         returned: limited.length,
         results: limited,
-        ...ranks,
+        ...picks,
       };
 
       const text = JSON.stringify(output, null, 2);

@@ -13,16 +13,27 @@ export interface SearchResultItem {
   in_stock?: boolean;
   delivery?: string;
   price_history_url: string;
+  trusted_rating?: number;
+  price_outlier?: true;
 }
 
-export interface RankedResults {
+export interface RankedPicks {
+  cheapest_in_stock?: SearchResultItem;
+  best_value?: SearchResultItem;
+  budget_pick?: SearchResultItem;
+  top_rated?: SearchResultItem;
+  close_call?: true;
+  runner_up?: SearchResultItem;
+  frontier?: SearchResultItem[];
+  why?: Partial<Record<"best_value" | "budget_pick" | "top_rated" | "runner_up", string>>;
+}
+
+export interface RankedResults extends RankedPicks {
   query: string;
   page: number;
   total_results: number;
   returned: number;
   results: SearchResultItem[];
-  cheapest_in_stock?: SearchResultItem;
-  best_value?: SearchResultItem;
 }
 
 export interface ProductDetail {

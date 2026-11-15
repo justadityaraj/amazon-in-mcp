@@ -82,9 +82,19 @@ export const REQUEST_TIMEOUT_MS = 20000;
 export const MAX_BULLET_LENGTH = 400; // skip overly-long feature-bullet text
 export const BOT_CHECK_SCAN_BYTES = 8000; // only scan response head for bot markers
 
-// Ranking tuning (best_value scoring)
-export const MIN_REVIEWS_FOR_BEST_VALUE = 10; // ignore items with too few reviews
-export const LOG_REVIEWS_SMOOTHING = 10; // log10(reviews + this) to avoid log(0) explosion
+export const STAR_RATING_SD = 1.2;
+export const CONFIDENCE_Z = 1.645;
+export const FALLBACK_PRIOR_MEAN = 4.2;
+export const FALLBACK_PRIOR_STRENGTH = 20;
+export const MIN_LISTINGS_FOR_PAGE_PRIOR = 8;
+export const MIN_PRIOR_STRENGTH = 20;
+export const MAX_PRIOR_STRENGTH = 100;
+export const MIN_BETWEEN_LISTING_VARIANCE = 0.01;
+export const STARS_TRADED_PER_PRICE_DOUBLING = { low: 0.05, medium: 0.15, high: 0.3 } as const;
+export const CLOSE_CALL_GAP = 0.05;
+export const MIN_REVIEWS_TO_MERGE_VARIANTS = 20;
+export const MIN_TITLE_OVERLAP_TO_MERGE = 0.6;
+export const PRICE_OUTLIER_RATIO = 25;
 
 // Phrases Amazon serves on bot-check / blocked pages
 export const BOT_CHECK_MARKERS = [

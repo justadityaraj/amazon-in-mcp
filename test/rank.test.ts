@@ -172,6 +172,17 @@ test("on a page with wildly mixed ratings, 10 reviews is still too thin for budg
   assert.equal(rankResults(inflators).budget_pick?.asin, "AMZBASICS1");
 });
 
+test("budget_pick is left out when no listing has enough reviews to back it", () => {
+  const items = [
+    item({ asin: "OLDFAITHFL", price_inr: 300, rating: 3.0, review_count: 1000 }),
+    item({ asin: "TWOREVIEWS", price_inr: 150, rating: 5.0, review_count: 2 }),
+    item({ asin: "THREEREVWS", price_inr: 180, rating: 5.0, review_count: 3 }),
+  ];
+  const ranked = rankResults(items);
+  assert.equal(ranked.budget_pick, undefined);
+  assert.equal(ranked.why?.budget_pick, undefined);
+});
+
 test("budget_pick accepts a listing within a close call of the typical one", () => {
   const mice = [
     item({ asin: "TOAD350001", price_inr: 248, rating: 4.0, review_count: 1400 }),
@@ -277,6 +288,22 @@ test("cheapest_in_stock carries its trusted rating", () => {
 
 test("reasons show ratings with one decimal", () => {
   assert.match(rankResults(MOUSE_PAGE_2026_11_15).why?.budget_pick ?? "", /4\.0★/);
+});
+
+test("dedupeVariants keeps two different products that happen to share a rating and review count", () => {
+  const items = [
+    item({ asin: "BOTTLE0001", title: "Milton Thermosteel Flip Lid Flask 1000 ml, Silver", price_inr: 899, rating: 4.3, review_count: 20 }),
+    item({ asin: "TOWEL00001", title: "SOFTSPUN Microfiber Cloth 4 pcs 40x40 cms 340 GSM Grey", price_inr: 259, rating: 4.3, review_count: 20 }),
+  ];
+  assert.equal(dedupeVariants(items).length, 2);
+});
+
+test("dedupeVariants merges colour variants whose titles differ only by colour", () => {
+  const items = [
+    item({ asin: "B0FF4XBM5N", title: "ZEBRONICS Wireless Mouse, 2.4GHz, 3200 DPI, 3 Buttons, Comfortable & Ergonomic, USB Nano Receiver, Power-Saving Mode, Works on Most Surfaces, for Mac | Laptop | Computer (Freego, Black)", price_inr: 229, rating: 3.7, review_count: 4339 }),
+    item({ asin: "B0GHYBDYW5", title: "Zebronics Wireless Mouse, 2.4GHz, 3200 DPI, 3 Buttons, Comfortable & Ergonomic, USB Nano Receiver, On/Off Switch, Power-Saving Mode, Works on Most Surfaces, for Mac | Laptop | Computer (Freego, Blue)", price_inr: 229, rating: 3.7, review_count: 4339 }),
+  ];
+  assert.equal(dedupeVariants(items).length, 1);
 });
 
 test("dedupeVariants leaves thinly reviewed listings alone even when their numbers match", () => {

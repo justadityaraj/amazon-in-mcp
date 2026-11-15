@@ -8,6 +8,7 @@ import {
   MIN_LISTINGS_FOR_PAGE_PRIOR,
   MIN_PRIOR_STRENGTH,
   MIN_REVIEWS_TO_MERGE_VARIANTS,
+  MIN_TITLE_OVERLAP_TO_MERGE,
   PRICE_OUTLIER_RATIO,
   STAR_RATING_SD,
   STARS_TRADED_PER_PRICE_DOUBLING,
@@ -94,18 +95,32 @@ function preferredVariant(a: SearchResultItem, b: SearchResultItem): SearchResul
   return (b.price_inr ?? Infinity) < (a.price_inr ?? Infinity) ? b : a;
 }
 
+function titleWords(title: string): Set<string> {
+  return new Set(title.toLowerCase().match(/[a-z0-9]+/g) ?? []);
+}
+
+function sameProductFamily(a: SearchResultItem, b: SearchResultItem): boolean {
+  if (a.asin === b.asin) return true;
+  const wordsA = titleWords(a.title);
+  const wordsB = titleWords(b.title);
+  const shared = [...wordsA].filter((word) => wordsB.has(word)).length;
+  const union = wordsA.size + wordsB.size - shared;
+  return union > 0 && shared / union >= MIN_TITLE_OVERLAP_TO_MERGE;
+}
+
 export function dedupeVariants(items: SearchResultItem[]): SearchResultItem[] {
   const kept: SearchResultItem[] = [];
-  const slotByKey = new Map<string, number>();
+  const slotsByKey = new Map<string, number[]>();
   for (const it of items) {
     if (!isRated(it) || it.review_count < MIN_REVIEWS_TO_MERGE_VARIANTS) {
       kept.push(it);
       continue;
     }
     const key = `${it.rating}|${it.review_count}`;
-    const slot = slotByKey.get(key);
+    const slots = slotsByKey.get(key) ?? [];
+    const slot = slots.find((s) => sameProductFamily(kept[s]!, it));
     if (slot === undefined) {
-      slotByKey.set(key, kept.length);
+      slotsByKey.set(key, [...slots, kept.length]);
       kept.push(it);
     } else {
       kept[slot] = preferredVariant(kept[slot]!, it);
@@ -166,18 +181,20 @@ export function rankResults(
   const typical = lowerMedian(eligible.map((it) => it.trusted_rating)) - CLOSE_CALL_GAP;
   const priorWeight = pagePrior(items.filter(isRated)).strength;
   const isDecent = (it: Ranked) => it.trusted_rating >= typical;
-  const budget =
-    [...eligible]
-      .sort((a, b) => a.price_inr - b.price_inr)
-      .find((it) => isDecent(it) && it.review_count >= priorWeight) ?? frontier.find(isDecent)!;
+  const budget = [...eligible]
+    .sort((a, b) => a.price_inr - b.price_inr)
+    .find((it) => isDecent(it) && it.review_count >= priorWeight);
   const top = frontier[frontier.length - 1]!;
 
-  Object.assign(picks, { best_value: best, budget_pick: budget, top_rated: top, frontier });
+  Object.assign(picks, { best_value: best, top_rated: top, frontier });
   picks.why = {
     best_value: `Best balance of trusted rating and price at ${sensitivity} price sensitivity: ${describe(best)}.`,
-    budget_pick: `Cheapest listing about as good as a typical result here or better, with enough reviews to back it: ${describe(budget)}. ${versus(budget, best)}`,
     top_rated: `Highest trusted rating on the page: ${describe(top)}. ${versus(top, best)}`,
   };
+  if (budget) {
+    picks.budget_pick = budget;
+    picks.why.budget_pick = `Cheapest listing about as good as a typical result here or better, with enough reviews to back it: ${describe(budget)}. ${versus(budget, best)}`;
+  }
 
   if (runnerUp && value(best) - value(runnerUp) < CLOSE_CALL_GAP) {
     picks.close_call = true;

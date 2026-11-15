@@ -93,6 +93,7 @@ export const MIN_BETWEEN_LISTING_VARIANCE = 0.01;
 export const STARS_TRADED_PER_PRICE_DOUBLING = { low: 0.05, medium: 0.15, high: 0.3 } as const;
 export const CLOSE_CALL_GAP = 0.05;
 export const MIN_REVIEWS_TO_MERGE_VARIANTS = 20;
+export const MIN_TITLE_OVERLAP_TO_MERGE = 0.6;
 export const PRICE_OUTLIER_RATIO = 25;
 
 // Phrases Amazon serves on bot-check / blocked pages

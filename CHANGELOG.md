@@ -14,8 +14,9 @@ versioning follows [SemVer](https://semver.org).
   The old score let cheap, mediocre listings win and only looked at the
   returned slice.
 - **Picks use every listing on the page**, not just the first `max_results`.
-- **Colour and size variants are merged** when they share one rating and
-  review count, keeping the cheapest in-stock one.
+- **Colour and size variants are merged** when they share one rating,
+  review count and a near-identical title, keeping the cheapest in-stock,
+  organic one.
 
 ### Added
 

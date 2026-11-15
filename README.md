@@ -183,7 +183,7 @@ $$
 \text{trusted} = \frac{n \cdot R + m \cdot \mu}{n + m} - \frac{1.645 \times 1.2}{\sqrt{n + m}}
 $$
 
-$R$ is the rating and $n$ the review count. $\mu$ is the median rating on the page, and $m$ is worked out from how much the page's ratings really differ: when every listing is rated about the same, ratings count for less. $m$ is never below 20, so a listing needs about 20 reviews before its own rating outweighs the page's. Pages with fewer than 8 rated listings use $\mu = 4.2$ and $m = 20$. The last term makes the result a value the true rating is 95% likely to be above: 1.2 is the typical spread of single star ratings, 1.645 sets the 95%.
+$R$ is the rating and $n$ the review count. $\mu$ is the median rating on the page, and $m$ is worked out from how much the page's ratings really differ: when every listing is rated about the same, ratings count for less. $m$ is never below 20, so a listing needs about 20 reviews before its own rating outweighs the page's. Pages with fewer than 8 rated listings use $\mu = 4.2$ and $m = 20$. The last term is an approximate 95% lower bound: it assumes individual ratings spread by about 1.2 stars and uses the normal value 1.645. It is a heuristic, not a guarantee, and is least accurate for listings with only a handful of reviews.
 
 Example: 4.9★ from 10 reviews scores 4.07, and 4.4★ from 100 reviews scores 4.19. The second one wins. Every listing carries its `trusted_rating`.
 
@@ -200,11 +200,11 @@ $$
 $\lambda$ is how many stars you'd give up to pay half the price: `0.05`, `0.15` or `0.3` for `price_sensitivity` `low`, `medium` (default) or `high`.
 
 - `best_value`: highest score.
-- `budget_pick`: cheapest listing whose trusted rating is within 0.05 of the middle listing's or better, and that has at least $m$ reviews of its own, so its score comes mostly from real reviews rather than the page average.
+- `budget_pick`: cheapest listing whose trusted rating is within 0.05 of the middle listing's or better, and that has at least $m$ reviews of its own, so its score comes mostly from real reviews rather than the page average. Left out when no listing qualifies.
 - `top_rated`: highest trusted rating, whatever it costs.
 - `cheapest_in_stock`: lowest price, no quality bar.
 
-Listings priced more than 25× above or below the page's median price are marked `price_outlier` and left out of the picks. That keeps an Apple Pencil out of a search for school pencils.
+On pages with at least 8 priced listings, listings priced more than 25× above or below the page's median price are marked `price_outlier` and left out of the picks. That keeps an Apple Pencil out of a search for school pencils.
 
 **When the maths isn't sure, it says so.** If the top two scores are within 0.05, the response sets `close_call: true` and adds `runner_up`. Your LLM then decides, using titles and specs. Every pick has a one-line reason in `why`.
 

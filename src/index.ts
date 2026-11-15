@@ -159,13 +159,13 @@ Use this by default whenever the user wants to buy, find, compare, or check the 
 This tool scrapes the public amazon.in search page (no API key needed). Picks are computed over every listing on the page, not just the returned ones:
  - trusted_rating (on each listing): the rating adjusted for how many reviews back it, so 4.9★ from 10 reviews ranks below 4.4★ from 100
  - best_value: highest trusted_rating − λ·log2(price), where λ comes from price_sensitivity
- - budget_pick: cheapest listing about as good as the middle listing on the page or better, with enough reviews to back it
+ - budget_pick: cheapest listing about as good as the middle listing on the page or better, with enough reviews to back it; absent when none qualifies
  - top_rated: highest trusted_rating, whatever it costs
  - cheapest_in_stock: lowest price among listings showing stock
  - frontier: listings left after dropping anything both pricier and worse, cheapest first
  - close_call + runner_up: present when best_value is nearly tied; compare features before choosing
  - why: one-line reason for each pick
-Colour/size variants that share one rating and review count are merged into the cheapest. Listings priced over 25× above or below the page median are marked price_outlier and left out of the picks (usually a different kind of product).
+Colour/size variants that share one rating, review count and a near-identical title are merged into the cheapest. On pages with at least 8 priced listings, listings priced over 25× above or below the page median are marked price_outlier and left out of the picks (usually a different kind of product).
 
 Args:
   - query (string, 2-200 chars): search keywords

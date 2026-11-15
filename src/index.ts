@@ -46,7 +46,7 @@ Treat these tools as the source of truth for amazon.in prices and availability, 
 const server = new McpServer(
   {
     name: "amazon-in-mcp-server",
-    version: "0.1.6",
+    version: "0.2.0",
   },
   {
     instructions: SERVER_INSTRUCTIONS,

@@ -6,7 +6,7 @@
 
 <p align="center">
   An <a href="https://modelcontextprotocol.io">MCP</a> server that lets your LLM shop on Amazon.in.<br/>
-  Cheapest in-stock listing. Best-value pick. Price history. No paid APIs.
+  Best-value, budget and top-rated picks from real statistics. Price history. No paid APIs.
 </p>
 
 <p align="center">
@@ -25,7 +25,7 @@ Three tools your LLM can call against `amazon.in`:
 
 | Tool | What it returns |
 |---|---|
-| `search_amazon_in(query, max_results=5, page=1)` | Ranked listings + two convenience picks: **cheapest in stock** and **best value** (rating × log10(reviews) / √price). `page` fetches deeper result pages. |
+| `search_amazon_in(query, max_results=5, page=1, price_sensitivity="medium")` | Listings plus **best value**, **budget**, **top rated** and **cheapest in stock** picks, each with a reason. See [How the picks are chosen](#how-the-picks-are-chosen). `page` fetches deeper result pages. |
 | `get_product(asin_or_url)` | Full product detail — price, MRP, discount, rating, reviews, stock, bullets, brand, seller, delivery |
 | `price_history_link(asin_or_url)` | A Keepa.com chart URL for the amazon.in domain. No network call. |
 
@@ -73,11 +73,20 @@ A real call to `search_amazon_in("wireless mouse", max_results=3)` returns:
       "review_count": 7801,
       "in_stock": true,
       "delivery": "FREE delivery Tomorrow",
-      "price_history_url": "https://keepa.com/#!product/12-B0CQRNWJM2"
+      "price_history_url": "https://keepa.com/#!product/12-B0CQRNWJM2",
+      "trusted_rating": 3.99
     }
   ],
-  "cheapest_in_stock": { "asin": "...", "price_inr": 199, "...": "..." },
-  "best_value":        { "asin": "...", "rating": 4.3, "...": "..." }
+  "best_value":        { "asin": "B0FDQ9M1SD", "price_inr": 499, "rating": 4.5, "trusted_rating": 4.48, "...": "..." },
+  "budget_pick":       { "asin": "B0B296NTFV", "price_inr": 299, "rating": 4.0, "trusted_rating": 3.99, "...": "..." },
+  "top_rated":         { "asin": "B0FDQ9M1SD", "...": "..." },
+  "cheapest_in_stock": { "asin": "B0FF4XBM5N", "price_inr": 229, "rating": 3.7, "...": "..." },
+  "frontier":          [ "...4 listings, cheapest first..." ],
+  "why": {
+    "best_value":  "Best balance of trusted rating and price at medium price sensitivity: ₹499, 4.5★ from 3,587 reviews (trusted 4.48).",
+    "budget_pick": "Cheapest listing rated at least as well as a typical result here: ₹299, 4.0★ from 17,143 reviews (trusted 3.99). ₹200 cheaper than best_value, trusted rating -0.49.",
+    "top_rated":   "Highest trusted rating on the page: ₹499, 4.5★ from 3,587 reviews (trusted 4.48). Same listing as best_value."
+  }
 }
 ```
 
@@ -163,15 +172,52 @@ The server intentionally doesn't accept image input — keeps it provider-agnost
 
 ---
 
-## How "best value" is scored
+## How the picks are chosen
 
-Among in-stock listings with at least 10 reviews:
+Each search returns `best_value`, `budget_pick`, `top_rated` and `cheapest_in_stock`, plus `frontier`: every sensible trade-off between price and quality. The picks come from a fixed formula, not a model's opinion, so the same listings always give the same picks. They are computed over every listing on the page, not only the ones returned.
+
+**1. Trust a rating only as far as its reviews allow.** A 4.9★ product with 10 reviews hasn't proven much yet. Each rating is blended with the typical rating on the page, weighted by its review count, then lowered by how uncertain the blend still is:
 
 $$
-\text{score} = \frac{\text{rating} \times \log_{10}(\text{reviews} + 10)}{\sqrt{\text{price}}}
+\text{trusted} = \frac{n \cdot R + m \cdot \mu}{n + m} - \frac{1.2}{\sqrt{n + m}}
 $$
 
-The highest score wins. `cheapest_in_stock` is just the lowest `price_inr` among in-stock items — useful when you want raw cheapness instead of balance.
+$R$ is the rating and $n$ the review count. $\mu$ is the median rating on the page, and $m$ is worked out from how much the page's ratings really differ: when every listing is rated about the same, ratings count for less. Pages with fewer than 8 rated listings use $\mu = 4.2$ and $m = 20$.
+
+Example: 4.9★ from 10 reviews scores 4.21, and 4.4★ from 100 reviews scores 4.26. The second one wins. Every listing carries its `trusted_rating`.
+
+**2. Treat price the way people feel it.** Going from ₹100 to ₹200 feels the same as going from ₹10,000 to ₹20,000, so price is compared on a log scale. One formula works for pencils and for monitors.
+
+**3. Drop anything that is both pricier and worse.** What's left is the `frontier`, cheapest first: every step up in price buys a better product.
+
+**4. Pick the best balance.**
+
+$$
+\text{score} = \text{trusted} - \lambda \cdot \log_2(\text{price})
+$$
+
+$\lambda$ is how many stars you'd give up to pay half the price: `0.05`, `0.15` or `0.3` for `price_sensitivity` `low`, `medium` (default) or `high`.
+
+- `best_value`: highest score.
+- `budget_pick`: cheapest frontier listing rated at least as well as the middle listing on the page.
+- `top_rated`: highest trusted rating, whatever it costs.
+- `cheapest_in_stock`: lowest price, no quality bar.
+
+Listings priced more than 25× above or below the page's median price are marked `price_outlier` and left out of the picks. That keeps an Apple Pencil out of a search for school pencils.
+
+**When the maths isn't sure, it says so.** If the top two scores are within 0.05, the response sets `close_call: true` and adds `runner_up`. Your LLM then decides, using titles and specs. Every pick has a one-line reason in `why`.
+
+**What it can't do:** spot fake reviews, tell whether two products do the same job, or read pack sizes. Those are left to your LLM.
+
+| Idea | From |
+|---|---|
+| Blending a rating with a prior | Thomas Bayes (1763) and Pierre-Simon Laplace; estimating the prior from the data is Herbert Robbins' empirical Bayes (1956) |
+| Penalising uncertainty | Edwin B. Wilson's score interval (1927), popularised for ratings by Evan Miller (2009) |
+| Log scale for price | Daniel Bernoulli (1738); the Weber–Fechner law (1834, 1860) |
+| Frontier of trade-offs | Vilfredo Pareto (1906); Harry Markowitz's efficient frontier (1952) |
+| Quality minus weighted cost | Cost-effectiveness analysis, Weinstein & Stason (1977) |
+
+The constants (1.2, $\lambda$, the 0.05 close-call gap) are tuning choices, set in [`src/constants.ts`](src/constants.ts).
 
 ---
 

@@ -4,6 +4,28 @@ All notable changes to `amazon-in-mcp-server` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer](https://semver.org).
 
+## [Unreleased]
+
+### Changed
+
+- **New ranking for search picks.** Ratings are now adjusted for how many
+  reviews back them (empirical Bayes plus an uncertainty penalty), price is
+  compared on a log scale, and `best_value` is the best balance of the two.
+  The old score let cheap, mediocre listings win and only looked at the
+  returned slice.
+- **Picks use every listing on the page**, not just the first `max_results`.
+- **Colour and size variants are merged** when they share one rating and
+  review count, keeping the cheapest in-stock one.
+
+### Added
+
+- `budget_pick`, `top_rated`, `frontier`, `why`, and `close_call` +
+  `runner_up` in `search_amazon_in` results, plus `trusted_rating` on each
+  listing.
+- `price_outlier` on listings priced over 25× above or below the page median;
+  they are left out of the picks.
+- `price_sensitivity` input (`low` / `medium` / `high`, default `medium`).
+
 ## [0.1.6] — 2026-11-13
 
 ### Fixed
